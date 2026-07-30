@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Ollama
+models/
+
+# Qdrant
+qdrant_storage/
+
+# Chroma
+chroma/
+
+# LanceDB
+*.lance
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Temporary
+temp/
+cache/
+
+# AI generated outputs
+outputs/
+
+# Large datasets
+data/
+
+# NAS
+*.db
+*.sqlite
