@@ -168,41 +168,14 @@ def main():
         perf.stop("Semantic Analysis")
 
         # -------------------------
-        # Decision Engine
+        # Planning
         # -------------------------
 
-        state.decision = decision_engine.decide(
-            state.user_input,
-            state.context,
-            state.plan,
-        )
+        perf.start("Planning")
 
-        # -------------------------
-        # Model Selection
-        # -------------------------
+        state = pipeline.planning_stage(state)
 
-        model = model_manager.select(
-            state.plan.model_capability,
-            state.plan.complexity,
-        )
-
-        state.selected_model = model.name if model else None
-
-        # -------------------------
-        # Tool Selection
-        # -------------------------
-
-        selected_tool = tool_manager.select(
-            state.plan.tool_capability,
-        )
-
-        if selected_tool is not None:
-
-            state.selected_tool = selected_tool.name
-
-        else:
-
-            state.selected_tool = None
+        perf.stop("Planning")
 
         # -------------------------
         # Execution
@@ -210,7 +183,12 @@ def main():
 
         perf.start("Execution")
 
-        state = pipeline.planning_stage(state)
+        state = pipeline.execution_stage(
+            state,
+            developer,
+            memory,
+            scheduler,
+        )
 
         perf.stop("Execution")
 

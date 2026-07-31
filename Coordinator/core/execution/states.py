@@ -1,35 +1,42 @@
 """
-===========================================================
+=========================================================
 AIOS Execution States
-core/execution/states.py
+=========================================================
 
-Version 1.0
-===========================================================
+Central execution pipeline state definitions.
+
+Phase 3 Architecture
+=========================================================
 """
 
-from enum import Enum
-
-
-class ExecutionStates(Enum):
+class ExecutionStates:
 
     START = "START"
 
-    UNDERSTAND = "UNDERSTAND"
+    PERCEPTION = "PERCEPTION"
 
-    PLAN = "PLAN"
+    SEMANTIC = "SEMANTIC"
 
-    MEMORY = "MEMORY"
+    CONTEXT = "CONTEXT"
 
-    REPLAN = "REPLAN"
+    INTENT = "INTENT"
 
-    LLM = "LLM"
+    PLANNING = "PLANNING"
 
     DECISION = "DECISION"
 
-    SEARCH = "SEARCH"
+    MODEL_SELECTION = "MODEL_SELECTION"
 
-    SEARCH_RETRY = "SEARCH_RETRY"
+    TOOL_SELECTION = "TOOL_SELECTION"
 
-    LLM_FINAL = "LLM_FINAL"
+    EXECUTION = "EXECUTION"
+
+    MEMORY_COMMIT = "MEMORY_COMMIT"
+
+    BACKGROUND_QUEUE = "BACKGROUND_QUEUE"
+
+    PRESENTATION = "PRESENTATION"
 
     COMPLETE = "COMPLETE"
+
+    ERROR = "ERROR"

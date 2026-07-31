@@ -2,19 +2,35 @@
 ===========================================================
 AIOS Pipeline Controller
 
-Coordinates execution stages.
+Owns the execution pipeline.
 
-Coordinator only controls lifecycle.
+Coordinator only:
+    - Boot
+    - User Loop
+    - Dependency Injection
 
-PipelineController controls execution.
+PipelineController:
+    - Semantic
+    - Planning
+    - Decision
+    - Model Selection
+    - Tool Selection
+    - Execution
 ===========================================================
 """
 
 from core.intent.classifier import IntentClassifier
 from core.planner.planner import build_plan
+from core.executor import execute
 from core.execution.states import ExecutionStates
+from core.config import DEFAULT_BACKGROUND_SUMMARY
+
 
 class PipelineController:
+
+    # --------------------------------------------------
+    # Semantic Stage
+    # --------------------------------------------------
 
     def semantic_stage(
         self,
@@ -23,6 +39,9 @@ class PipelineController:
         semantic_engine,
         context_engine,
     ):
+
+        state.execution.current_state = ExecutionStates.SEMANTIC
+        print(f"[PIPELINE] {state.execution.current_state}")
 
         # -------------------------
         # Perception
@@ -37,13 +56,9 @@ class PipelineController:
         # -------------------------
 
         semantic = semantic_engine.understand(
-
             query=state.user_input,
-
             repository=state.repository,
-
             memory=state.working_memory,
-
         )
 
         state.semantic = semantic
@@ -53,11 +68,8 @@ class PipelineController:
         # -------------------------
 
         state.context = context_engine.analyze(
-
             state.user_input,
-
             semantic=semantic,
-
         )
 
         # -------------------------
@@ -80,9 +92,14 @@ class PipelineController:
 
         return state
 
+    # --------------------------------------------------
+    # Planning Stage
+    # --------------------------------------------------
+
     def planning_stage(self, state):
 
         state.execution.current_state = ExecutionStates.PLANNING
+        print(f"[PIPELINE] {state.execution.current_state}")
 
         state.plan = build_plan(
             intent=state.intent_result,
@@ -94,3 +111,80 @@ class PipelineController:
 
         return state
 
+    # --------------------------------------------------
+    # Decision Stage
+    # --------------------------------------------------
+
+    def decision_stage(
+        self,
+        state,
+        decision_engine,
+        model_manager,
+        tool_manager,
+    ):
+
+        state.execution.current_state = ExecutionStates.DECISION
+
+        # --------------------------------------------------
+        # Decision Engine
+        # --------------------------------------------------
+
+        state.decision = decision_engine.decide(
+            state.user_input,
+            state.context,
+            state.plan,
+        )
+
+        # --------------------------------------------------
+        # Model Selection
+        # --------------------------------------------------
+
+        model = model_manager.select(
+            state.plan.model_capability,
+            state.plan.complexity,
+        )
+
+        state.selected_model = model.name if model else None
+
+        # --------------------------------------------------
+        # Tool Selection
+        # --------------------------------------------------
+
+        selected_tool = tool_manager.select(
+            state.plan.tool_capability,
+        )
+
+        state.selected_tool = (
+            selected_tool.name
+            if selected_tool
+            else None
+        )
+
+        return state
+
+    # --------------------------------------------------
+    # Execution Stage
+    # --------------------------------------------------
+
+    def execution_stage(
+        self,
+        state,
+        developer,
+        memory,
+        scheduler,
+    ):
+
+        state.execution.current_state = ExecutionStates.EXECUTION
+        print(f"[PIPELINE] {state.execution.current_state}")
+
+        state.simulation = developer.simulation
+
+        state = execute(state)
+
+        memory.commit(state)
+
+        scheduler.queue.add_job(
+            "Background Summary"
+        )
+
+        return state
