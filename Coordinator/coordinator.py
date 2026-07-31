@@ -55,6 +55,7 @@ from core.intent.llm_understanding import SemanticUnderstanding
 
 from core.execution.pipelinestate import PipelineState
 from core.execution.states import ExecutionStates
+from core.execution.pipeline_controller import PipelineController
 
 
 def main():
@@ -97,6 +98,8 @@ def main():
     context_engine = ContextEngine()
 
     semantic_engine = SemanticUnderstanding(model_manager)
+
+    pipeline = PipelineController()
 
     while True:
 
@@ -155,73 +158,14 @@ def main():
 
         perf.start("Semantic Analysis")
 
-        # -------------------------
-        # Perception
-        # -------------------------
-
-        state.perception = perception_engine.analyze(state.user_input)
-
-        # --------------------------------------------------
-        # Tiny semantic reasoning
-        # --------------------------------------------------
-
-        semantic = semantic_engine.understand(
-            query=state.user_input,
-            repository=repository,
-            memory=memory,
+        state = pipeline.semantic_stage(
+            state,
+            perception_engine,
+            semantic_engine,
+            context_engine,
         )
-
-        state.semantic = semantic
-
-        if developer.enabled:
-
-            print("\n===== SEMANTIC UNDERSTANDING =====")
-
-            if isinstance(state.semantic, dict):
-                for key, value in state.semantic.items():
-                    print(f"{key:24}: {value}")
-            else:
-                print(state.semantic)
-
-        # -------------------------
-        # Context engine now uses semantic
-        # -------------------------
-
-        state.context = context_engine.analyze(
-            state.user_input,
-            semantic=state.semantic
-        )
-
-        # -------------------------
-        # Intent
-        # -------------------------
-
-        if getattr(state.semantic, "intent_result", None):
-            state.intent_result = semantic.intent_result
-
-        else:
-            classifier = IntentClassifier()
-            state.intent_result = classifier.classify(state.context)
-
-        state.intent = state.intent_result.intent
 
         perf.stop("Semantic Analysis")
-
-        # -------------------------
-        # Execution Planning
-        # -------------------------
-
-        perf.start("Execution Planning")
-
-        state.plan = build_plan(
-            intent=state.intent_result,
-            query=state.user_input,
-            context=state.context,
-            perception=state.perception,
-            semantic_result=state.semantic,
-        )
-
-        perf.stop("Execution Planning")
 
         # -------------------------
         # Decision Engine
@@ -266,15 +210,7 @@ def main():
 
         perf.start("Execution")
 
-        state.simulation = developer.simulation
-
-        state = execute(state)
-
-        memory.commit(state)
-
-        scheduler.queue.add_job(
-            DEFAULT_BACKGROUND_SUMMARY
-        )
+        state = pipeline.planning_stage(state)
 
         perf.stop("Execution")
 
