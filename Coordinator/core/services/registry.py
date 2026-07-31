@@ -1,5 +1,6 @@
 """
 AIOS Service Registry
+core/services/registry.py
 
 Registers all AIOS Services.
 
@@ -15,7 +16,7 @@ Version 1
 
 from dataclasses import dataclass
 
-from core.services.search.service import SearchService
+from core.services.search_service import SearchService
 
 
 @dataclass

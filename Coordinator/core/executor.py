@@ -88,8 +88,16 @@ def execute(state):
 
             while True:
 
+                search_query = state.user_input
+
+                if (
+                    getattr(state, "semantic", None)
+                    and getattr(state.semantic, "search_query", "")
+                ):
+                    search_query = state.semantic.search_query
+
                 raw_results = service.search(
-                    query=state.user_input,
+                    query=search_query,
                 )
 
                 if not raw_results:
@@ -107,7 +115,7 @@ def execute(state):
                     state.search_summary,
                     state.search_context,
                 ) = search_pipeline.process(
-                    query=state.user_input,
+                    query=search_query,
                     results=raw_results,
                 )
 

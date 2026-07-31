@@ -26,54 +26,7 @@ import re
 
 from core.semantics.result import SemanticResult
 
-class SemanticUnderstanding:
-
-    def __init__(self, model_manager):
-
-        self.model_manager = model_manager
-
-    # -----------------------------------------------------
-
-    def understand(
-
-        self,
-
-        query,
-
-        repository=None,
-
-        memory=None,
-
-    ):
-
-        model = self.model_manager.get("qwen2.5:1.5b")
-
-        if model is None:
-
-            return self.empty_result()
-
-        prompt = self.build_prompt(query)
-
-        raw = model.generate(prompt)
-
-        return self.parse(raw)
-
-    # -----------------------------------------------------
-
-    def build_prompt(self, query):
-
-        return f"""
-You are AIOS Semantic Understanding.
-
-Read the user's request.
-
-Your job is NOT to answer.
-
-Return ONLY valid JSON.
-
-Schema
-
-{schema = """
+SCHEMA = """
 {
   "domains": [],
   "concepts": [],
@@ -100,7 +53,60 @@ Schema
 
   "execution_order":[]
 }
-"""}
+"""
+
+class SemanticUnderstanding:
+
+    def __init__(self, model_manager):
+
+        self.model_manager = model_manager
+
+    # -----------------------------------------------------
+
+    def understand(
+
+        self,
+
+        query,
+
+        repository=None,
+
+        memory=None,
+
+    ):
+
+        config = self.model_manager.get("qwen2.5:1.5b")
+
+        if config is None:
+
+            return self.empty_result()
+
+        model = config.wrapper
+
+        # Build prompt
+        prompt = self.build_prompt(query)
+
+        # Execute model
+        raw = model.generate(prompt)
+
+        return self.parse(raw)
+
+    # -----------------------------------------------------
+
+    def build_prompt(self, query):
+
+        return f"""
+You are AIOS Semantic Understanding.
+
+Read the user's request.
+
+Your job is NOT to answer.
+
+Return ONLY valid JSON.
+
+Schema
+
+{SCHEMA}
 
 Definitions
 

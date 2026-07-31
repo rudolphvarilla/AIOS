@@ -4,27 +4,60 @@ AIOS Execution Planner
 core/planner/planner.py
 ===========================================================
 
-Creates an execution plan from:
+Creates an execution plan from
 
 • IntentResult
-• Semantic Context
-• Semantic Understanding
-• Routing Rules
+• ContextResult
+• SemanticResult
+• PerceptionResult
 
-Planner does NOT call any LLM.
+Planner is now the intelligence.
 
-Version 2.0
+Router only translates the finished plan.
+
+Version 4.0
 ===========================================================
 """
 
 from dataclasses import dataclass, field
 
-from core.routing.router import CapabilityRouter
 from core.context.overrides import DOMAIN_OVERRIDES
-from core.intent.result import IntentResult
 
-router = CapabilityRouter()
 
+# ---------------------------------------------------------
+# Default Route
+# ---------------------------------------------------------
+
+DEFAULT_ROUTE = {
+
+    "model_capability": "GENERAL",
+
+    "tool_capability": None,
+
+    "browser": False,
+
+    "vision": False,
+
+    "image_generation": False,
+
+    "repository": False,
+
+    "memory": False,
+
+    "profile": False,
+
+    "workspace": False,
+
+    "time": False,
+
+    "longterm": False,
+
+}
+
+
+# =========================================================
+# Execution Plan
+# =========================================================
 
 @dataclass
 class ExecutionPlan:
@@ -34,8 +67,6 @@ class ExecutionPlan:
     complexity: str
 
     # ---------------------------------
-    # Semantic Context
-    # ---------------------------------
 
     context_domains: set[str]
 
@@ -44,37 +75,27 @@ class ExecutionPlan:
     primary_concept: str | None
 
     # ---------------------------------
-    # Routing
-    # ---------------------------------
 
     model_capability: str
 
     tool_capability: str | None
 
     # ---------------------------------
-    # Perception
-    # ---------------------------------
 
     perception: object | None
 
-    # ---------------------------------
-    # Prompt Planning
     # ---------------------------------
 
     prompt_flags: dict[str, bool]
 
     # ---------------------------------
-    # Execution
-    # ---------------------------------
 
     browser: bool
 
-    image_generation: bool
-
     vision: bool
 
-    # ---------------------------------
-    # Tiny reasoning output
+    image_generation: bool
+
     # ---------------------------------
 
     confidence: float = 0.0
@@ -82,32 +103,47 @@ class ExecutionPlan:
     execution_order: list[str] = field(default_factory=list)
 
 
-# ==========================================================
-# Build Plan
-# ==========================================================
+# =========================================================
+# Planner
+# =========================================================
 
 def build_plan(
-    intent_result: IntentResult,
+
+    intent,
+
+    query,
+
     context=None,
+
     perception=None,
+
     semantic_result=None,
+
 ):
 
-    # ---------------------------------
+    intent_result = intent
+
+    route = DEFAULT_ROUTE.copy()
+
+    # --------------------------------------------------
     # Complexity
-    # ---------------------------------
+    # --------------------------------------------------
 
     complexity = intent_result.complexity
 
-    if semantic_result is not None:
+    if (
 
-        if getattr(semantic_result, "complexity", None):
+        semantic_result is not None
 
-            complexity = semantic_result.complexity
+        and getattr(semantic_result, "complexity", None)
 
-    # ---------------------------------
-    # Semantic Context
-    # ---------------------------------
+    ):
+
+        complexity = semantic_result.complexity
+
+    # --------------------------------------------------
+    # Context
+    # --------------------------------------------------
 
     domains = set()
 
@@ -117,45 +153,51 @@ def build_plan(
 
     if context is not None:
 
-        domains = context.domains
+        domains = set(context.domains)
 
         primary_domain = context.primary_domain
 
         primary_concept = context.primary_concept
 
-    # ---------------------------------
-    # Base Routing
-    # ---------------------------------
+    # --------------------------------------------------
+    # Intent Based Routing
+    # --------------------------------------------------
 
-    route = router.route(
+    intent_name = intent_result.intent.upper()
 
-        intent_result.intent,
+    if intent_name in {
 
-        complexity,
+        "CODE",
 
-        "",
+        "PROGRAM",
 
-    )
+        "DEBUG",
 
-    # ---------------------------------
+    }:
+
+        route["model_capability"] = "CODING"
+
+    # --------------------------------------------------
     # Domain Routing
-    # ---------------------------------
+    # --------------------------------------------------
 
     if primary_domain == "coding":
 
         route["model_capability"] = "CODING"
 
+    elif primary_domain == "travel":
+
+        route["browser"] = True
+
+        route["time"] = True
+
     elif primary_domain == "photography":
 
         route["repository"] = True
 
-    elif primary_domain == "travel":
-
-        route["time"] = True
-
-    # ---------------------------------
+    # --------------------------------------------------
     # Domain Overrides
-    # ---------------------------------
+    # --------------------------------------------------
 
     for domain in domains:
 
@@ -165,9 +207,9 @@ def build_plan(
 
             route.update(overrides)
 
-    # ---------------------------------
+    # --------------------------------------------------
     # Perception Overrides
-    # ---------------------------------
+    # --------------------------------------------------
 
     if perception is not None:
 
@@ -183,9 +225,9 @@ def build_plan(
 
             route["browser"] = True
 
-    # ---------------------------------
-    # Tiny LLM Overrides
-    # ---------------------------------
+    # --------------------------------------------------
+    # Semantic Overrides
+    # --------------------------------------------------
 
     confidence = 0.0
 
@@ -213,57 +255,33 @@ def build_plan(
 
         )
 
-        if getattr(
-
-            semantic_result,
-
-            "requires_search",
-
-            False,
-
-        ):
+        if semantic_result.requires_search:
 
             route["browser"] = True
 
-        if getattr(
-
-            semantic_result,
-
-            "requires_code",
-
-            False,
-
-        ):
+        if semantic_result.requires_code:
 
             route["model_capability"] = "CODING"
 
-        if getattr(
+        if semantic_result.requires_repository:
 
-            semantic_result,
+            route["repository"] = True
 
-            "requires_vision",
+        if semantic_result.requires_memory:
 
-            False,
+            route["memory"] = True
 
-        ):
+        if semantic_result.requires_vision:
 
             route["vision"] = True
 
-        if getattr(
-
-            semantic_result,
-
-            "requires_image_generation",
-
-            False,
-
-        ):
+        if semantic_result.requires_image_generation:
 
             route["image_generation"] = True
 
-    # ---------------------------------
-    # Build Plan
-    # ---------------------------------
+    # --------------------------------------------------
+    # Build Execution Plan
+    # --------------------------------------------------
 
     return ExecutionPlan(
 
@@ -289,7 +307,7 @@ def build_plan(
 
             for key, value in route.items()
 
-            if key in (
+            if key in {
 
                 "repository",
 
@@ -303,15 +321,15 @@ def build_plan(
 
                 "longterm",
 
-            )
+            }
 
         },
 
         browser=route["browser"],
 
-        image_generation=route["image_generation"],
-
         vision=route["vision"],
+
+        image_generation=route["image_generation"],
 
         confidence=confidence,
 

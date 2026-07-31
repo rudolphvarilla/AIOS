@@ -1,5 +1,6 @@
 """
 AIOS Service Manager
+core/services/manager.py
 
 Central manager for all AIOS Services.
 

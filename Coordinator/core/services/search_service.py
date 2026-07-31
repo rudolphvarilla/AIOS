@@ -1,5 +1,6 @@
 """
 AIOS Search Service
+core/services/search_service.py
 
 Provides Internet search capability.
 

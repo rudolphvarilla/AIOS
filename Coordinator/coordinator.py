@@ -53,6 +53,9 @@ from core.context.engine import ContextEngine
 from core.intent.classifier import IntentClassifier
 from core.intent.llm_understanding import SemanticUnderstanding
 
+from core.execution.pipelinestate import PipelineState
+from core.execution.states import ExecutionStates
+
 
 def main():
 
@@ -99,6 +102,9 @@ def main():
 
         state = AIOSState()
 
+        state.execution = PipelineState(query="")
+        state.execution.current_state = ExecutionStates.START
+
         state.working_memory = memory
         state.repository = repository
         state.time = time_manager
@@ -106,6 +112,8 @@ def main():
         perf = PerformanceMonitor()
 
         state.user_input = input("You: ").strip()
+
+        state.execution.query = state.user_input
 
         # Ignore empty input
         if not state.user_input:
@@ -165,6 +173,16 @@ def main():
 
         state.semantic = semantic
 
+        if developer.enabled:
+
+            print("\n===== SEMANTIC UNDERSTANDING =====")
+
+            if isinstance(state.semantic, dict):
+                for key, value in state.semantic.items():
+                    print(f"{key:24}: {value}")
+            else:
+                print(state.semantic)
+
         # -------------------------
         # Context engine now uses semantic
         # -------------------------
@@ -197,6 +215,7 @@ def main():
 
         state.plan = build_plan(
             intent=state.intent_result,
+            query=state.user_input,
             context=state.context,
             perception=state.perception,
             semantic_result=state.semantic,

@@ -44,44 +44,20 @@ class ContextEngine:
 
         # ------------------------------------------
         # STEP 1
-        # Seed context from semantic understanding
+        # Seed semantic understanding
         # ------------------------------------------
 
         if semantic is not None:
 
-            # domains
+            result.semantic_domains = set(semantic.domains)
 
-            if hasattr(semantic, "domains"):
+            if semantic.domains:
 
-                result.domains = set(semantic.domains)
+                result.semantic_primary_domain = semantic.domains[0]
 
-            # concepts
+            if semantic.concepts:
 
-            if hasattr(semantic, "concepts"):
-
-                result.concepts = semantic.concepts
-
-            # primary selections
-
-            result.primary_domain = getattr(
-
-                semantic,
-
-                "primary_domain",
-
-                None,
-
-            )
-
-            result.primary_concept = getattr(
-
-                semantic,
-
-                "primary_concept",
-
-                None,
-
-            )
+                result.semantic_primary_concept = semantic.concepts[0]
 
         # ------------------------------------------
         # STEP 2
@@ -95,9 +71,7 @@ class ContextEngine:
         concepts = defaultdict(set)
 
         concept_scores = defaultdict(
-
             lambda: defaultdict(float)
-
         )
 
         domain_scores = defaultdict(float)
@@ -109,11 +83,8 @@ class ContextEngine:
             concept = item["concept"]
 
             confidence = item.get(
-
                 "confidence",
-
                 1.0,
-
             )
 
             concepts[domain].add(concept)
@@ -123,7 +94,7 @@ class ContextEngine:
             domain_scores[domain] += confidence
 
         # ------------------------------------------
-        # Merge semantic concepts with keyword concepts
+        # Merge symbolic concepts
         # ------------------------------------------
 
         for domain, values in concepts.items():
@@ -131,11 +102,8 @@ class ContextEngine:
             existing = set(
 
                 result.concepts.get(
-
                     domain,
-
                     [],
-
                 )
 
             )
@@ -155,77 +123,5 @@ class ContextEngine:
         }
 
         result.domain_scores = dict(domain_scores)
-
-        # ------------------------------------------
-        # STEP 3
-        # If semantic did not determine primary domain,
-        # use keyword confidence.
-        # ------------------------------------------
-
-        if result.primary_domain is None:
-
-            if domain_scores:
-
-                result.primary_domain = max(
-
-                    domain_scores,
-
-                    key=domain_scores.get,
-
-                )
-
-        # ------------------------------------------
-        # STEP 4
-        # Populate domain list
-        # ------------------------------------------
-
-        if hasattr(result, "domains"):
-
-            result.domains.update(
-
-                result.concepts.keys()
-
-            )
-
-        else:
-
-            result.domains = set(
-
-                result.concepts.keys()
-
-            )
-
-        # ------------------------------------------
-        # STEP 5
-        # Resolve primary concept if still empty
-        # ------------------------------------------
-
-        if (
-
-            result.primary_concept is None
-
-            and result.primary_domain is not None
-
-        ):
-
-            domain = result.primary_domain
-
-            scores = result.concept_scores.get(
-
-                domain,
-
-                {},
-
-            )
-
-            if scores:
-
-                result.primary_concept = max(
-
-                    scores,
-
-                    key=scores.get,
-
-                )
 
         return result
