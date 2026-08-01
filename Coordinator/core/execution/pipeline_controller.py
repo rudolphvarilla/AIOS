@@ -124,6 +124,7 @@ class PipelineController:
     ):
 
         state.execution.current_state = ExecutionStates.DECISION
+        print(f"[PIPELINE] {state.execution.current_state}")
 
         # --------------------------------------------------
         # Decision Engine
@@ -179,12 +180,30 @@ class PipelineController:
 
         state.simulation = developer.simulation
 
+        # --------------------------------------------------
+        # Execute Plan
+        # --------------------------------------------------
+
         state = execute(state)
+
+        # --------------------------------------------------
+        # Commit Memory
+        # --------------------------------------------------
 
         memory.commit(state)
 
+        # --------------------------------------------------
+        # Queue Background Tasks
+        # --------------------------------------------------
+
         scheduler.queue.add_job(
-            "Background Summary"
+            DEFAULT_BACKGROUND_SUMMARY
         )
+
+        # --------------------------------------------------
+        # Pipeline Finished
+        # --------------------------------------------------
+
+        state.execution.current_state = ExecutionStates.COMPLETE
 
         return state

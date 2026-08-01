@@ -168,7 +168,7 @@ def main():
         perf.stop("Semantic Analysis")
 
         # -------------------------
-        # Planning
+        # Planning Stage
         # -------------------------
 
         perf.start("Planning")
@@ -178,7 +178,22 @@ def main():
         perf.stop("Planning")
 
         # -------------------------
-        # Execution
+        # Decision Stage
+        # -------------------------
+
+        perf.start("Decision")
+
+        state = pipeline.decision_stage(
+            state,
+            decision_engine,
+            model_manager,
+            tool_manager,
+        )
+
+        perf.stop("Decision")
+
+        # -------------------------
+        # Execution Stage
         # -------------------------
 
         perf.start("Execution")
