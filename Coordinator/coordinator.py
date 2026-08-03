@@ -186,11 +186,35 @@ def main():
         state = pipeline.decision_stage(
             state,
             decision_engine,
-            model_manager,
-            tool_manager,
         )
 
         perf.stop("Decision")
+
+        # -------------------------
+        # Model Selection Stage
+        # -------------------------
+
+        perf.start("Model Selection")
+
+        state = pipeline.model_selection_stage(
+            state,
+            model_manager,
+        )
+
+        perf.stop("Model Selection")
+
+        # -------------------------
+        # Tool Selection Stage
+        # -------------------------
+
+        perf.start("Tool Selection")
+
+        state = pipeline.tool_selection_stage(
+            state,
+            tool_manager,
+        )
+
+        perf.stop("Tool Selection")
 
         # -------------------------
         # Execution Stage

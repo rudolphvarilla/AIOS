@@ -119,8 +119,6 @@ class PipelineController:
         self,
         state,
         decision_engine,
-        model_manager,
-        tool_manager,
     ):
 
         state.execution.current_state = ExecutionStates.DECISION
@@ -136,6 +134,21 @@ class PipelineController:
             state.plan,
         )
 
+        return state
+
+    # --------------------------------------------------
+    # Model Selection Stage
+    # --------------------------------------------------
+
+    def model_selection_stage(
+        self,
+        state,
+        model_manager,
+    ):
+
+        state.execution.current_state = ExecutionStates.MODEL_SELECTION
+        print(f"[PIPELINE] {state.execution.current_state}")
+
         # --------------------------------------------------
         # Model Selection
         # --------------------------------------------------
@@ -145,7 +158,26 @@ class PipelineController:
             state.plan.complexity,
         )
 
-        state.selected_model = model.name if model else None
+        state.selected_model = (
+            model.name
+            if model
+            else None
+        )
+
+        return state
+
+    # --------------------------------------------------
+    # Tool Selection Stage
+    # --------------------------------------------------
+
+    def tool_selection_stage(
+        self,
+        state,
+        tool_manager,
+    ):
+
+        state.execution.current_state = ExecutionStates.TOOL_SELECTION
+        print(f"[PIPELINE] {state.execution.current_state}")
 
         # --------------------------------------------------
         # Tool Selection
