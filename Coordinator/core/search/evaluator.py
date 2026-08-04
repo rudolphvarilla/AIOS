@@ -30,7 +30,7 @@ from dataclasses import dataclass
 
 from core.search.authority import AuthorityScorer
 from core.search.relevance import RelevanceScorer
-
+from core.config import DECISION_CONFIDENCE_THRESHOLD
 
 # =========================================================
 # Individual Search Result
@@ -172,33 +172,21 @@ class SearchEvaluator:
 
         confidence = context.confidence
 
-        should_retry = False
+        # -------------------------------------------------
+        # Confidence Gate
+        # -------------------------------------------------
 
-        reason = ""
+        if confidence >= 0.80:
 
-        if confidence < 0.60:
+            should_retry = False
+
+            reason = "Confidence accepted"
+
+        else:
 
             should_retry = True
 
             reason = "Low confidence"
-
-        elif entity_count < 5:
-
-            should_retry = True
-
-            reason = "Too few entities"
-
-        elif recommendation_count == 0:
-
-            should_retry = True
-
-            reason = "No recommendations"
-
-        elif fact_count == 0:
-
-            should_retry = True
-
-            reason = "No extracted facts"
 
         return SearchEvaluation(
 

@@ -23,8 +23,7 @@ from core.intent.classifier import IntentClassifier
 from core.planner.planner import build_plan
 from core.executor import execute
 from core.execution.states import ExecutionStates
-from core.config import DEFAULT_BACKGROUND_SUMMARY
-
+from core.config import (DEFAULT_BACKGROUND_SUMMARY, DECISION_CONFIDENCE_THRESHOLD,)
 
 class PipelineController:
 
@@ -133,6 +132,37 @@ class PipelineController:
             state.context,
             state.plan,
         )
+
+        # --------------------------------------------------
+        # Semantic Confidence Gate
+        # --------------------------------------------------
+
+        confidence = getattr(
+            state.intent_result,
+            "confidence",
+            0.0,
+        )
+
+        if confidence < DECISION_CONFIDENCE_THRESHOLD:
+
+            print(
+                f"[DECISION] Confidence below threshold."
+                f"({confidence:2f}). Retrying decision."
+            )
+
+            state.decision = decision_engine.decide(
+                state.user_input,
+                state.context,
+                state.plan,
+                retry=True,
+            )
+
+        else:
+
+            print(
+                f"[DECISION] Confidence accepted "
+                f"({confidence:.2f})"
+            )
 
         return state
 

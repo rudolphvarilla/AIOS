@@ -63,3 +63,9 @@ TOKEN_ESTIMATE_DIVISOR = 4
 # ----------------------------------------
 
 MIN_SEARCH_AUTHORITY = 0.50
+
+# ----------------------------------------
+# Decision Confidence
+# ----------------------------------------
+
+DECISION_CONFIDENCE_THRESHOLD = 0.80
