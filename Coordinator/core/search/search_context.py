@@ -6,14 +6,18 @@ core/search/search_context.py
 
 Builds the unified SearchContext object.
 
-Version 4.0
+Version 4.1 - Phase 3.1.12 5WH validation
 ===========================================================
 """
 
 from core.search.context import SearchContext
+from core.search.fivewh_validator import FiveWHValidator
 
 
 class SearchContextBuilder:
+
+    def __init__(self):
+        self.fivewh_validator = FiveWHValidator()
 
     def build(
         self,
@@ -21,8 +25,8 @@ class SearchContextBuilder:
         results,
         knowledge,
         summary,
+        fivewh=None,
     ):
-
         confidence = 0.40
 
         confidence += min(len(results), 10) * 0.04
@@ -46,5 +50,13 @@ class SearchContextBuilder:
             confidence=confidence,
             result_count=len(results),
         )
+
+        context.fivewh = fivewh
+
+        if fivewh is not None:
+            context.fivewh_alignment = self.fivewh_validator.validate(
+                fivewh,
+                context,
+            )
 
         return context
