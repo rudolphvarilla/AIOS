@@ -6,7 +6,7 @@ core/search/context.py
 
 Unified search context produced by the Search Pipeline.
 
-Version 3
+Version 3.1 - Phase 3.1.12 5WH validation
 ===========================================================
 """
 
@@ -63,6 +63,14 @@ class SearchContext:
     attributes: list[str] = field(default_factory=list)
 
     facts: list[str] = field(default_factory=list)
+
+    # -----------------------------
+    # 5WH Semantic Validation
+    # -----------------------------
+
+    fivewh = None
+
+    fivewh_alignment = None
 
     # -----------------------------
     # Confidence
