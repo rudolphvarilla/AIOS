@@ -2,7 +2,7 @@
 Phase 3.1.12 - 5WH regression tests.
 
 These tests intentionally avoid an LLM. They validate the deterministic
-5WH parsing contract and the first search-alignment gate.
+5WH parsing contract and the search-answerability gate.
 """
 
 import unittest
@@ -64,6 +64,67 @@ class FiveWHTests(unittest.TestCase):
 
         self.assertGreaterEqual(alignment.score, 0.70)
         self.assertEqual(alignment.missing, [])
+
+    def test_current_weather_requires_current_weather_evidence(self):
+        fivewh = FiveWHResult(
+            who="user",
+            what="current weather",
+            when="now",
+            where="Philippines",
+            why="none provided",
+            how="weather conditions",
+            confidence=1.0,
+        )
+
+        context = self.context(
+            summary=(
+                "Southwest Monsoon affecting western sections of the "
+                "Philippines. A low pressure area was observed near "
+                "northern Luzon."
+            ),
+            locations=["Philippines", "Luzon"],
+            facts=[
+                "Southwest Monsoon affecting the Philippines",
+                "Low pressure area near northern Luzon",
+            ],
+        )
+
+        alignment = self.validator.validate(fivewh, context)
+
+        self.assertLess(alignment.score, 0.70)
+        self.assertIn("what", alignment.missing)
+        self.assertIn("when", alignment.missing)
+
+    def test_current_weather_accepts_current_conditions_evidence(self):
+        fivewh = FiveWHResult(
+            who="user",
+            what="current weather",
+            when="now",
+            where="Philippines",
+            why="none provided",
+            how="weather conditions",
+            confidence=1.0,
+        )
+
+        context = self.context(
+            summary=(
+                "Current weather conditions in the Philippines: "
+                "28°C with scattered rain, winds from the southwest "
+                "at 12 km/h and high humidity."
+            ),
+            locations=["Philippines"],
+            facts=[
+                "Current temperature: 28°C",
+                "Current conditions: scattered rain",
+                "Current wind: southwest at 12 km/h",
+            ],
+        )
+
+        alignment = self.validator.validate(fivewh, context)
+
+        self.assertGreaterEqual(alignment.score, 0.70)
+        self.assertNotIn("what", alignment.missing)
+        self.assertNotIn("when", alignment.missing)
 
     def test_unrelated_results_fail_alignment(self):
         fivewh = FiveWHResult(
