@@ -6,7 +6,7 @@ core/search/pipeline.py
 
 Central search processing pipeline.
 
-Version 1.1 - Phase 3.1.12 5WH validation
+Version 1.2 - Phase 3.1.14 answerability validation
 ===========================================================
 """
 
@@ -139,14 +139,16 @@ class SearchPipeline:
         search_context.evaluation = search_evaluation
 
         print("\n===== SEARCH EVALUATION =====")
-        print(f"Confidence       : {search_evaluation.confidence:.2f}")
-        print(f"Entities         : {len(search_context.entities)}")
-        print(f"Recommendations  : {len(search_context.recommendations)}")
-        print(f"Facts            : {len(search_context.facts)}")
-        print(f"5WH Score        : {search_evaluation.fivewh_score:.2f}")
-        print(f"5WH Missing      : {search_evaluation.fivewh_missing}")
-        print(f"Retry            : {search_evaluation.should_retry}")
-        print(f"Reason           : {search_evaluation.reason}")
+        print(f"Confidence          : {search_evaluation.confidence:.2f}")
+        print(f"Entities            : {len(search_context.entities)}")
+        print(f"Recommendations     : {len(search_context.recommendations)}")
+        print(f"Facts               : {len(search_context.facts)}")
+        print(f"5WH Score           : {search_evaluation.fivewh_score:.2f}")
+        print(f"5WH Missing         : {search_evaluation.fivewh_missing}")
+        print(f"Answerability       : {search_evaluation.answerability_score:.2f}")
+        print(f"Answerability Missing: {search_evaluation.answerability_missing}")
+        print(f"Retry               : {search_evaluation.should_retry}")
+        print(f"Reason              : {search_evaluation.reason}")
 
         return (
             unique,
