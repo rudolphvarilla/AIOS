@@ -18,7 +18,7 @@ Design principles
 • The raw source sentence is retained for later LLM interpretation.
 • No value is inferred when the source does not state it.
 
-Version 1.0
+Version 1.1
 ===========================================================
 """
 
@@ -51,8 +51,6 @@ class SearchFact:
 class DeterministicEvidenceExtractor:
     """Extract source-grounded evidence without a domain-specific ontology."""
 
-    # Number + common unit. The unit list is intentionally measurement-oriented,
-    # not weather-oriented, so the same extractor can work across domains.
     MEASUREMENT_PATTERN = re.compile(
         r"(?P<value>[+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*"
         r"(?P<unit>%|°\s*[CF]|\b(?:C|F|mm|cm|km|m|in|inch|inches|ft|feet|mi|miles|"
@@ -79,16 +77,18 @@ class DeterministicEvidenceExtractor:
 
     def extract(self, results):
         facts = []
-
         for result in results:
             text = f"{result.title}\n{result.snippet}".strip()
             facts.extend(self.extract_from_text(text, result.url))
-
         return facts
 
     def extract_from_text(self, text, source_url):
         facts = []
-        sentences = [s.strip() for s in self.SENTENCE_SPLIT.split(text) if s.strip()]
+        sentences = [
+            s.strip()
+            for s in self.SENTENCE_SPLIT.split(text)
+            if s.strip()
+        ]
 
         for sentence in sentences:
             measurements = list(self.MEASUREMENT_PATTERN.finditer(sentence))
@@ -96,7 +96,7 @@ class DeterministicEvidenceExtractor:
             for match in measurements:
                 value = match.group("value")
                 unit = re.sub(r"\s+", "", match.group("unit"))
-                predicate = self._infer_predicate(sentence, match.start())
+                predicate = self._infer_predicate(sentence, match.start(), match.end())
                 temporal_scope = self._temporal_scope(sentence)
 
                 facts.append(
@@ -111,7 +111,6 @@ class DeterministicEvidenceExtractor:
                     )
                 )
 
-            # Preserve explicit dates even when there is no measurement.
             for match in self.DATE_PATTERN.finditer(sentence):
                 facts.append(
                     SearchFact(
@@ -124,10 +123,9 @@ class DeterministicEvidenceExtractor:
                     )
                 )
 
-            # Preserve source wording containing temporal markers even when it
-            # has no number. This is deliberately open-ended: unfamiliar terms
-            # such as "low pressure area" or "fresh powder" remain available
-            # for later semantic interpretation.
+            # Preserve temporal source clauses even when they contain no
+            # numeric value. This keeps unfamiliar terminology available for
+            # later semantic interpretation instead of discarding it.
             lowered = sentence.casefold()
             if any(term in lowered for term in self.TEMPORAL_TERMS):
                 if not measurements and not self.DATE_PATTERN.search(sentence):
@@ -143,28 +141,27 @@ class DeterministicEvidenceExtractor:
 
         return self._deduplicate(facts)
 
-    def _infer_predicate(self, sentence, value_start):
+    def _infer_predicate(self, sentence, value_start, value_end):
         """Derive a descriptive predicate from nearby source wording only."""
         prefix = sentence[max(0, value_start - 80):value_start].strip().casefold()
-        words = re.findall(r"[a-z][a-z_\-/ ]*", prefix)
-        nearby = words[-1].strip() if words else "measurement"
+        suffix = sentence[value_end:value_end + 80].strip().casefold()
+        context = f"{prefix} {suffix}"
 
-        # Generic normalization of obvious grammatical forms. This is not a
-        # domain ontology; the original sentence remains in raw_text.
-        if "chance of" in prefix or "probability" in prefix:
+        if "chance" in context or "probability" in context:
             return "probability"
-        if "temperature" in prefix or "temp" in prefix:
+        if "temperature" in context or "temp" in context:
             return "temperature"
-        if "wind" in prefix:
+        if "wind" in context:
             return "wind_measurement"
-        if "snow" in prefix:
+        if "snow" in context or "powder" in context:
             return "snow_measurement"
-        if "rain" in prefix or "precipitation" in prefix:
+        if "rain" in context or "precipitation" in context:
             return "precipitation_measurement"
-        if "pressure" in prefix:
+        if "pressure" in context:
             return "pressure_measurement"
 
-        return nearby or "measurement"
+        words = re.findall(r"[a-z][a-z_\-/ ]*", prefix)
+        return words[-1].strip() if words else "measurement"
 
     def _temporal_scope(self, sentence):
         lowered = sentence.casefold()
