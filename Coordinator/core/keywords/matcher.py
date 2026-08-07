@@ -7,7 +7,7 @@ core/keywords/matcher.py
 Matches user text against semantic registries and reweights ambiguous words
 using already-extracted semantic intent.
 
-Version 3.1
+Version 3.2
 ===========================================================
 """
 
@@ -66,6 +66,7 @@ class KeywordMatcher:
                         continue
 
                     start, end = found.span()
+                    ambiguous = keyword.casefold() in self.sense_resolver.AMBIGUOUS
 
                     contained = False
                     for s, e in matched_spans:
@@ -73,10 +74,14 @@ class KeywordMatcher:
                             contained = True
                             break
 
-                    if contained:
+                    # Multiple registries are intentionally allowed to match
+                    # the same span for ambiguous terms. The sense resolver
+                    # then decides which meaning is supported by intent.
+                    if contained and not ambiguous:
                         continue
 
-                    matched_spans.append((start, end))
+                    if not ambiguous:
+                        matched_spans.append((start, end))
 
                     match = {
                         "domain": registry_name.lower(),
