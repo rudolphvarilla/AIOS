@@ -33,8 +33,8 @@ class SearchFactExtractor:
     # new domains do not require a new weather/engineering vocabulary entry.
     MEASUREMENT_PATTERN = re.compile(
         r"(?P<value>\d+(?:\.\d+)?)\s*"
-        r"(?P<unit>[%°]|[A-Za-zµμ]+(?:/[A-Za-zµμ]+)?|[A-Za-zµμ]+\^[0-9]+)"
-        r"\b?",
+        r"(?P<unit>°[CF]|[%]|[A-Za-zµμ]+(?:/[A-Za-zµμ]+)?|[A-Za-zµμ]+\^[0-9]+)"
+        r"(?=\b|\s|[,.;:!?]|$)",
         re.IGNORECASE,
     )
 
@@ -95,14 +95,11 @@ class SearchFactExtractor:
             )
 
         # A source can contain useful qualitative information without a
-        # numeric value (for example, a condition or a named weather system).
-        # Preserve the entire source sentence instead of trying to classify
-        # unfamiliar terminology into a fixed list.
+        # numeric value. Preserve the entire source sentence instead of
+        # forcing unfamiliar terminology into a fixed domain vocabulary.
         if not measurements and self.ASSERTION_PATTERN.search(sentence):
-            subject = self._subject_before(
-                sentence,
-                self.ASSERTION_PATTERN.search(sentence).start(),
-            )
+            assertion = self.ASSERTION_PATTERN.search(sentence)
+            subject = self._subject_before(sentence, assertion.start())
             predicate = self._predicate_from_assertion(sentence)
             value = sentence
             key = (subject.casefold(), predicate.casefold(), value.casefold())
