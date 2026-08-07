@@ -4,69 +4,84 @@ AIOS Time Keyword Registry
 core/keywords/registries/time.py
 ===========================================================
 
-Semantic Registry v2
+Semantic Registry v3
 
 Canonical concepts for temporal reasoning.
 
-Version 2
+Phase 3.1.15 expands temporal vocabulary for ambiguous words whose meaning
+must later be resolved against the user's semantic intent.
 ===========================================================
 """
 
 TIME = {
 
-    "today":{
-        "keywords":{"today"},
-        "confidence":1.0,
-        "last_updated":None,
-        "source":"manual",
-        "relationships":set(),
+    "today": {
+        "keywords": {"today"},
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
     },
 
-    "tomorrow":{
-        "keywords":{"tomorrow"},
-        "confidence":1.0,
-        "last_updated":None,
-        "source":"manual",
-        "relationships":set(),
+    "tomorrow": {
+        "keywords": {"tomorrow"},
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
     },
 
-    "yesterday":{
-        "keywords":{"yesterday"},
-        "confidence":1.0,
-        "last_updated":None,
-        "source":"manual",
-        "relationships":set(),
+    "yesterday": {
+        "keywords": {"yesterday"},
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
     },
 
-    "current_time":{
-        "keywords":{
+    "temporal_now": {
+        "keywords": {
+            "current",
+            "currently",
+            "present",
+            "presently",
+            "now",
+        },
+        "confidence": 0.70,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
+    },
+
+    "current_time": {
+        "keywords": {
             "time",
             "time now",
             "current time",
             "clock",
-            "what time"
+            "what time",
         },
-        "confidence":1.0,
-        "last_updated":None,
-        "source":"manual",
-        "relationships":set(),
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
     },
 
-    "current_date":{
-        "keywords":{
+    "current_date": {
+        "keywords": {
             "date",
             "today's date",
             "current date",
-            "calendar"
+            "calendar",
         },
-        "confidence":1.0,
-        "last_updated":None,
-        "source":"manual",
-        "relationships":set(),
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
     },
 
-    "weekday":{
-        "keywords":{
+    "weekday": {
+        "keywords": {
             "weekday",
             "monday",
             "tuesday",
@@ -74,16 +89,16 @@ TIME = {
             "thursday",
             "friday",
             "saturday",
-            "sunday"
+            "sunday",
         },
-        "confidence":1.0,
-        "last_updated":None,
-        "source":"manual",
-        "relationships":set(),
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
     },
 
-    "relative_time":{
-        "keywords":{
+    "relative_time": {
+        "keywords": {
             "next week",
             "last week",
             "next month",
@@ -92,16 +107,16 @@ TIME = {
             "last year",
             "this week",
             "this month",
-            "this year"
+            "this year",
         },
-        "confidence":1.0,
-        "last_updated":None,
-        "source":"manual",
-        "relationships":set(),
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
     },
 
-    "duration":{
-        "keywords":{
+    "duration": {
+        "keywords": {
             "hour",
             "hours",
             "minute",
@@ -115,12 +130,11 @@ TIME = {
             "month",
             "months",
             "year",
-            "years"
+            "years",
         },
-        "confidence":1.0,
-        "last_updated":None,
-        "source":"manual",
-        "relationships":set(),
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
     },
-
 }
