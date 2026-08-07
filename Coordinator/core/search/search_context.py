@@ -6,7 +6,7 @@ core/search/search_context.py
 
 Builds the unified SearchContext object.
 
-Version 4.2 - Phase 3.1.14 answerability validation
+Version 4.3 - deterministic fact records
 ===========================================================
 """
 
@@ -34,6 +34,7 @@ class SearchContextBuilder:
         confidence += min(len(results), 10) * 0.04
         confidence += min(len(knowledge.entities), 20) * 0.01
         confidence += min(len(knowledge.relations), 20) * 0.02
+        confidence += min(len(knowledge.fact_records), 20) * 0.01
 
         confidence = min(confidence, 1.0)
 
@@ -49,6 +50,7 @@ class SearchContextBuilder:
             locations=knowledge.locations,
             attributes=knowledge.attributes,
             facts=knowledge.facts,
+            fact_records=knowledge.fact_records,
             confidence=confidence,
             result_count=len(results),
         )
@@ -65,6 +67,7 @@ class SearchContextBuilder:
                 fivewh,
                 results,
                 summary=summary,
+                facts=knowledge.fact_records,
             )
 
         return context
