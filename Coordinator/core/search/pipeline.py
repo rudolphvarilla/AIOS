@@ -6,7 +6,7 @@ core/search/pipeline.py
 
 Central search processing pipeline.
 
-Version 1.2 - Phase 3.1.14 answerability validation
+Version 1.3 - Phase 3.1.15 deterministic fact extraction
 ===========================================================
 """
 
@@ -16,6 +16,7 @@ from core.search.deduplicator import SearchDeduplicator
 from core.search.summarizer import SearchSummarizer
 from core.search.filter import SearchFilter
 from core.search.extractor import SearchExtractor
+from core.search.fact_extractor import SearchFactExtractor
 from core.search.normalizer import SearchNormalizer
 from core.search.classifier import SearchEntityClassifier
 from core.search.linker import EntityLinker
@@ -33,6 +34,7 @@ class SearchPipeline:
         self.summarizer = SearchSummarizer()
         self.filter = SearchFilter()
         self.extractor = SearchExtractor()
+        self.fact_extractor = SearchFactExtractor()
         self.normalizer = SearchNormalizer()
         self.classifier = SearchEntityClassifier()
         self.linker = EntityLinker()
@@ -89,11 +91,14 @@ class SearchPipeline:
         knowledge.entities = self.normalizer.normalize(knowledge.entities)
         knowledge.entities = self.classifier.classify(knowledge.entities)
 
+        knowledge.relations = self.linker.link(knowledge.entities)
+        knowledge.fact_records = self.fact_extractor.extract(unique)
+        knowledge.facts = [fact.render() for fact in knowledge.fact_records]
+        knowledge = self.enricher.enrich(knowledge)
+
         print(f"[PIPELINE] Entities         : {len(knowledge.entities)}")
         print(f"[PIPELINE] Relations        : {len(knowledge.relations)}")
-
-        knowledge.relations = self.linker.link(knowledge.entities)
-        knowledge = self.enricher.enrich(knowledge)
+        print(f"[PIPELINE] Facts             : {len(knowledge.fact_records)}")
 
         print("\n===== ENRICHED KNOWLEDGE =====")
         print("\nRecommendations")
