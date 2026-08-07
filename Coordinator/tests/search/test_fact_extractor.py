@@ -42,6 +42,22 @@ def test_preserves_unfamiliar_terminology_as_source_grounded_statement():
     )
 
 
+def test_preserves_qualifiers_when_measurement_and_jargon_share_a_sentence():
+    facts = SearchFactExtractor().extract([
+        result(
+            "Weather Advisory",
+            "Precipitation at 80% may be due to a low pressure area outside the region.",
+        )
+    ])
+
+    assert any(fact.value == "80%" for fact in facts)
+    assert any(
+        fact.fact_type == "statement"
+        and "low pressure area outside the region" in fact.evidence.lower()
+        for fact in facts
+    )
+
+
 def test_extracts_domain_unknown_measurements_such_as_new_snow():
     facts = SearchFactExtractor().extract([
         result(
