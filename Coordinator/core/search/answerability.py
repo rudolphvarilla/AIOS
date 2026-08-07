@@ -47,8 +47,6 @@ class AnswerabilityValidator:
         "observation", "observations", "present",
     }
 
-    # Numeric measurements are stronger evidence than a page merely saying
-    # that it contains weather information.
     WEATHER_MEASUREMENT_PATTERNS = (
         r"\b\d+(?:\.\d+)?\s*°\s*[cf]\b",
         r"\b\d+(?:\.\d+)?\s*(?:degrees?|°)\s*(?:c|f|celsius|fahrenheit)\b",
@@ -164,9 +162,9 @@ class AnswerabilityValidator:
             )
 
             if is_current:
-                # A generic weather page or a forecast landing page is not
-                # enough. We require at least one observable/quantitative
-                # condition in the retrieved evidence.
+                # A generic weather page or forecast landing page is relevant
+                # but is not answer-bearing. Current requests require at least
+                # one observable quantitative condition or explicit condition.
                 has_measurement = any(
                     re.search(pattern, evidence)
                     for pattern in self.WEATHER_MEASUREMENT_PATTERNS
@@ -178,17 +176,11 @@ class AnswerabilityValidator:
                         "thunderstorm", "rainy", "clear skies",
                     )
                 )
-                return 1.0 if has_measurement or has_condition else 0.25
+                return 1.0 if has_measurement or has_condition else 0.0
 
-            # For a future forecast or historical-weather request, explicit
-            # forecast/historical language plus weather evidence is enough for
-            # this first deterministic layer. Numerical forecast extraction is
-            # a later enhancement.
             has_forecast = "forecast" in evidence or "outlook" in evidence
             return 1.0 if has_forecast and weather_hits >= 1 else 0.50
 
-        # Generic factual questions still require substantive text rather
-        # than only a page title. A short but matching snippet counts here.
         return 1.0 if len(evidence.split()) >= 12 else 0.25
 
     def _tokens(self, value):
