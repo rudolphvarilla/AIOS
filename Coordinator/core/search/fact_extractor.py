@@ -1,22 +1,6 @@
 """
-===========================================================
 AIOS Deterministic Search Fact Extractor
-core/search/fact_extractor.py
-===========================================================
-
-Extracts answer-bearing fact candidates directly from retrieved
-search-result text.
-
-Design goals
-------------
-* deterministic: no LLM call and no closed weather-fact vocabulary
-* open-world: unfamiliar nouns/jargon remain in the raw evidence
-* provenance-preserving: every fact keeps URL and source sentence
-* conservative: extraction creates candidates; it never asserts that
-  an extracted value is true beyond what the source text says
-
 Phase 3.1.15
-===========================================================
 """
 
 from __future__ import annotations
@@ -38,12 +22,13 @@ class SearchFactExtractor:
         re.IGNORECASE,
     )
 
-    # Common grammatical anchors. These describe sentence structure rather
-    # than domain vocabulary, so the extracted subject/value may be anything.
+    # Grammatical anchors rather than a closed domain vocabulary. This lets
+    # unfamiliar jargon remain in the original source sentence.
     ASSERTION_PATTERN = re.compile(
         r"\b(?:is|are|was|were|has|have|had|shows|showing|reported|reports|"
         r"currently|expected|forecast|measured|recorded|reached|affecting|"
-        r"includes|including|contains|stands at|up to|around|about)\b",
+        r"includes|including|contains|stands at|up to|around|about|due to|"
+        r"because of|caused by|may be)\b",
         re.IGNORECASE,
     )
 
@@ -94,17 +79,18 @@ class SearchFactExtractor:
                 )
             )
 
-        # A source can contain useful qualitative information without a
-        # numeric value. Preserve the entire source sentence instead of
-        # forcing unfamiliar terminology into a fixed domain vocabulary.
-        if not measurements and self.ASSERTION_PATTERN.search(sentence):
-            assertion = self.ASSERTION_PATTERN.search(sentence)
+        # Preserve the whole sentence even when it also contains a numeric
+        # measurement. This is critical for qualifiers such as "due to a low
+        # pressure area outside the region" that should not be discarded just
+        # because the sentence also contains "80%".
+        assertion = self.ASSERTION_PATTERN.search(sentence)
+        if assertion and len(sentence.split()) >= 4:
             subject = self._subject_before(sentence, assertion.start())
             predicate = self._predicate_from_assertion(sentence)
             value = sentence
             key = (subject.casefold(), predicate.casefold(), value.casefold())
 
-            if key not in seen and len(sentence.split()) >= 4:
+            if key not in seen:
                 seen.add(key)
                 results.append(
                     SearchFact(
@@ -131,7 +117,6 @@ class SearchFactExtractor:
         if not prefix:
             return ""
 
-        # Keep the local noun phrase instead of returning the entire page title.
         words = prefix.split()
         anchors = {
             "in", "at", "for", "from", "with", "of", "and", "the",
@@ -150,15 +135,9 @@ class SearchFactExtractor:
     def _predicate(self, sentence: str, position: int):
         prefix = sentence[:position].lower()
         for phrase in (
-            "chance of",
-            "probability of",
-            "wind at",
-            "winds at",
-            "temperature of",
-            "temperature at",
-            "humidity of",
-            "rainfall of",
-            "precipitation of",
+            "chance of", "probability of", "wind at", "winds at",
+            "temperature of", "temperature at", "humidity of",
+            "rainfall of", "precipitation of",
         ):
             if prefix.endswith(phrase):
                 return phrase
