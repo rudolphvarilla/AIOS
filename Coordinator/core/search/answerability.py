@@ -181,7 +181,9 @@ class AnswerabilityValidator:
             has_forecast = "forecast" in evidence or "outlook" in evidence
             return 1.0 if has_forecast and weather_hits >= 1 else 0.50
 
-        return 1.0 if len(evidence.split()) >= 12 else 0.25
+        # Generic factual requests require enough retrieved text to provide
+        # an answer rather than merely naming a matching page.
+        return 1.0 if len(evidence.split()) >= 12 else 0.0
 
     def _tokens(self, value):
         stop = {
