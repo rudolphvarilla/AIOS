@@ -67,6 +67,11 @@ class SearchRelation:
 
     target: str
 
+    @property
+    def relationship(self) -> str:
+        """Backward-compatible alias for the legacy field name."""
+        return self.relation
+
 
 # ---------------------------------------------------------
 # Search Knowledge
