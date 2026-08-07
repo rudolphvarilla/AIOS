@@ -8,7 +8,7 @@ Converts SearchContext into prompt text.
 
 No search logic belongs here.
 
-Version 1.1 - source-grounded fact constraints
+Version 1.2 - source-grounded fact constraints
 ===========================================================
 """
 
@@ -62,10 +62,10 @@ class SearchContextRenderer:
                 "Use these records as the factual boundary for search-derived claims."
             )
             lines.append(
-                "Values and statements are copied from retrieved source text; do not"
+                "Values and statements are copied from retrieved source text;"
             )
             lines.append(
-                "upgrade qualifiers, infer unstated causes, or replace unfamiliar"
+                "do not upgrade qualifiers, infer unstated causes, or replace unfamiliar"
             )
             lines.append(
                 "terminology with an interpretation unless the source explicitly supports it."
