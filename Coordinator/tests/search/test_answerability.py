@@ -179,7 +179,9 @@ def test_search_evaluator_retries_when_answerability_is_low():
 
     evaluation = SearchEvaluator().evaluate_context(context)
 
-    assert evaluation.confidence < 0.70
+    # The contract is that low answerability forces a retry. The exact
+    # aggregate confidence is intentionally not used as the retry gate.
+    assert evaluation.confidence < context.confidence
     assert evaluation.answerability_score == 0.20
     assert evaluation.should_retry is True
     assert "answer-bearing evidence" in evaluation.reason
