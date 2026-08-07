@@ -6,20 +6,20 @@ core/search/search_context.py
 
 Builds the unified SearchContext object.
 
-Version 4.3 - deterministic fact records
+Version 4.4 - deterministic fact records and fact-aware answerability
 ===========================================================
 """
 
 from core.search.context import SearchContext
 from core.search.fivewh_validator import FiveWHValidator
-from core.search.answerability import AnswerabilityValidator
+from core.search.fact_aware_answerability import FactAwareAnswerabilityValidator
 
 
 class SearchContextBuilder:
 
     def __init__(self):
         self.fivewh_validator = FiveWHValidator()
-        self.answerability_validator = AnswerabilityValidator()
+        self.answerability_validator = FactAwareAnswerabilityValidator()
 
     def build(
         self,
