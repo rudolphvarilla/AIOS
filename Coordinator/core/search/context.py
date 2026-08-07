@@ -6,7 +6,7 @@ core/search/context.py
 
 Unified search context produced by the Search Pipeline.
 
-Version 3.2 - Phase 3.1.14 answerability validation
+Version 3.3 - deterministic fact records
 ===========================================================
 """
 
@@ -32,6 +32,7 @@ class SearchContext:
     locations: list[str] = field(default_factory=list)
     attributes: list[str] = field(default_factory=list)
     facts: list[str] = field(default_factory=list)
+    fact_records: list = field(default_factory=list)
 
     # Phase 3.1.12 5WH semantic validation
     fivewh = None
