@@ -43,7 +43,6 @@ class SearchPipeline:
         self.enricher = SearchKnowledgeEnricher()
 
     def process(self, query, results, fivewh=None):
-
         self.authority.apply(results)
 
         print("\n===== RAW SEARCH RESULTS =====")
@@ -90,8 +89,11 @@ class SearchPipeline:
         knowledge = self.extractor.extract(unique)
         knowledge.entities = self.normalizer.normalize(knowledge.entities)
         knowledge.entities = self.classifier.classify(knowledge.entities)
-
         knowledge.relations = self.linker.link(knowledge.entities)
+
+        # Deterministic, open-world fact extraction. The records preserve the
+        # original evidence and source URL so downstream LLMs reason over
+        # source-grounded data rather than inventing facts from page titles.
         knowledge.fact_records = self.fact_extractor.extract(unique)
         knowledge.facts = [fact.render() for fact in knowledge.fact_records]
         knowledge = self.enricher.enrich(knowledge)
@@ -155,9 +157,8 @@ class SearchPipeline:
         print(f"Retry               : {search_evaluation.should_retry}")
         print(f"Reason              : {search_evaluation.reason}")
 
-        return (
-            unique,
-            knowledge,
-            summary,
-            search_context,
-        )
+        # Public compatibility contract: callers receive unique results,
+        # knowledge, and the fully evaluated SearchContext. The summary is
+        # available as context.summary and is therefore not a fourth return
+        # value that would break existing 3-value callers.
+        return unique, knowledge, search_context
