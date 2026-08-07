@@ -6,18 +6,20 @@ core/search/search_context.py
 
 Builds the unified SearchContext object.
 
-Version 4.1 - Phase 3.1.12 5WH validation
+Version 4.2 - Phase 3.1.14 answerability validation
 ===========================================================
 """
 
 from core.search.context import SearchContext
 from core.search.fivewh_validator import FiveWHValidator
+from core.search.answerability import AnswerabilityValidator
 
 
 class SearchContextBuilder:
 
     def __init__(self):
         self.fivewh_validator = FiveWHValidator()
+        self.answerability_validator = AnswerabilityValidator()
 
     def build(
         self,
@@ -57,6 +59,12 @@ class SearchContextBuilder:
             context.fivewh_alignment = self.fivewh_validator.validate(
                 fivewh,
                 context,
+            )
+
+            context.answerability = self.answerability_validator.validate(
+                fivewh,
+                results,
+                summary=summary,
             )
 
         return context
