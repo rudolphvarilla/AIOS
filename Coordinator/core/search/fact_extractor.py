@@ -16,8 +16,9 @@ class SearchFactExtractor:
     # Generic numeric value + unit. The unit is intentionally open-ended so
     # new domains do not require a new weather/engineering vocabulary entry.
     MEASUREMENT_PATTERN = re.compile(
-        r"(?P<value>\d+(?:\.\d+)?)\s*"
-        r"(?P<unit>°[CF]|[%]|[A-Za-zµμ]+(?:/[A-Za-zµμ]+)?|[A-Za-zµμ]+\^[0-9]+)"
+        r"(?P<value>\d+(?:\.\d+)?)"
+        r"(?P<space>\s*)"
+        r"(?P<unit>°[CF]|%|[A-Za-zµμ]+(?:/[A-Za-zµμ]+)?|[A-Za-zµμ]+\^[0-9]+)"
         r"(?=\b|\s|[,.;:!?]|$)",
         re.IGNORECASE,
     )
@@ -58,7 +59,12 @@ class SearchFactExtractor:
         measurements = list(self.MEASUREMENT_PATTERN.finditer(sentence))
 
         for match in measurements:
-            value = f"{match.group('value')}{match.group('unit')}"
+            unit = match.group("unit")
+            # Normalize human-readable units while keeping compact scientific
+            # and symbolic units compact: 31km/h -> 31 km/h, 8inches -> 8 inches,
+            # while 28°C and 82% remain unchanged.
+            separator = "" if unit in {"%", "°C", "°F"} else " "
+            value = f"{match.group('value')}{separator}{unit}"
             subject = self._subject_before(sentence, match.start())
             predicate = self._predicate(sentence, match.start())
             key = (subject.casefold(), predicate.casefold(), value.casefold())
