@@ -13,12 +13,13 @@ class FakeService:
 
 
 class FakePipeline:
-    def __init__(self):
+    def __init__(self, pass_on=2):
         self.calls = 0
+        self.pass_on = pass_on
 
     def process(self, query, results, fivewh=None):
         self.calls += 1
-        accepted = self.calls >= 2
+        accepted = self.calls >= self.pass_on
         context = SimpleNamespace(
             evaluation=SimpleNamespace(
                 should_retry=not accepted,
@@ -32,13 +33,8 @@ class FakePipeline:
 
 def test_manager_rebuilds_search_after_judge_failure():
     service = FakeService()
-    pipeline = FakePipeline()
-    fivewh = SimpleNamespace(
-        what="weather",
-        when="current",
-        where="Manila",
-        how="conditions",
-    )
+    pipeline = FakePipeline(pass_on=2)
+    fivewh = SimpleNamespace(what="weather", when="current", where="Manila", how="conditions")
 
     results, knowledge, summary, context, attempts = SemanticSearchManager().run(
         original_query="current weather in Manila",
@@ -56,6 +52,30 @@ def test_manager_rebuilds_search_after_judge_failure():
     assert "where" in service.queries[1]
     assert context.evaluation.should_retry is False
     assert attempts[-1]["accepted"] is True
+    assert results
+    assert knowledge is not None
+    assert summary == "summary"
+
+
+def test_manager_returns_best_validated_attempt_when_retry_budget_exhausts():
+    service = FakeService()
+    pipeline = FakePipeline(pass_on=99)
+    fivewh = SimpleNamespace(what="weather", when="current", where="Manila", how="conditions")
+
+    results, knowledge, summary, context, attempts = SemanticSearchManager().run(
+        original_query="current weather in Manila",
+        semantic_query="current weather Manila",
+        fivewh=fivewh,
+        service=service,
+        pipeline=pipeline,
+        max_retries=2,
+    )
+
+    assert pipeline.calls == 3
+    assert len(attempts) == 3
+    assert attempts[-1]["accepted"] is False
+    assert context is not None
+    assert context.evaluation.should_retry is True
     assert results
     assert knowledge is not None
     assert summary == "summary"
