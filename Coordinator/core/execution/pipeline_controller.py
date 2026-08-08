@@ -19,11 +19,15 @@ PipelineController:
 ===========================================================
 """
 
+from concurrent.futures import ThreadPoolExecutor
+
 from core.intent.classifier import IntentClassifier
 from core.planner.planner import build_plan
 from core.executor import execute
 from core.execution.states import ExecutionStates
 from core.config import (DEFAULT_BACKGROUND_SUMMARY, DECISION_CONFIDENCE_THRESHOLD,)
+from core.semantics.fivewh import FiveWHUnderstanding
+
 
 class PipelineController:
 
@@ -42,47 +46,62 @@ class PipelineController:
         state.execution.current_state = ExecutionStates.SEMANTIC
         print(f"[PIPELINE] {state.execution.current_state}")
 
-        # -------------------------
-        # Perception
-        # -------------------------
-
         state.perception = perception_engine.analyze(
             state.user_input
         )
 
-        # -------------------------
-        # Tiny Semantic LLM
-        # -------------------------
+        # --------------------------------------------------
+        # Parallel semantic understanding
+        # --------------------------------------------------
+        # The normal semantic model determines routing/search hints.
+        # 5WH independently determines what the user needs from search.
+        # They are deliberately kept separate so one model cannot silently
+        # manufacture the validation target used by the other.
 
-        semantic = semantic_engine.understand(
-            query=state.user_input,
-            repository=state.repository,
-            memory=state.working_memory,
+        fivewh_engine = FiveWHUnderstanding(
+            semantic_engine.model_manager
         )
 
-        state.semantic = semantic
+        with ThreadPoolExecutor(max_workers=2) as executor_pool:
 
-        # -------------------------
-        # Context
-        # -------------------------
+            semantic_future = executor_pool.submit(
+                semantic_engine.understand,
+                query=state.user_input,
+                repository=state.repository,
+                memory=state.working_memory,
+            )
+
+            fivewh_future = executor_pool.submit(
+                fivewh_engine.understand,
+                query=state.user_input,
+                repository=state.repository,
+                memory=state.working_memory,
+            )
+
+            semantic = semantic_future.result()
+            fivewh = fivewh_future.result()
+
+        state.semantic = semantic
+        state.fivewh = fivewh
+
+        print("\n===== 5WH =====")
+        print(f"Who   : {fivewh.who}")
+        print(f"What  : {fivewh.what}")
+        print(f"When  : {fivewh.when}")
+        print(f"Where : {fivewh.where}")
+        print(f"Why   : {fivewh.why}")
+        print(f"How   : {fivewh.how}")
+        print(f"Confidence : {fivewh.confidence:.2f}")
 
         state.context = context_engine.analyze(
             state.user_input,
             semantic=semantic,
         )
 
-        # -------------------------
-        # Intent
-        # -------------------------
-
         if getattr(semantic, "intent_result", None):
-
             state.intent_result = semantic.intent_result
-
         else:
-
             classifier = IntentClassifier()
-
             state.intent_result = classifier.classify(
                 state.context
             )
@@ -123,19 +142,11 @@ class PipelineController:
         state.execution.current_state = ExecutionStates.DECISION
         print(f"[PIPELINE] {state.execution.current_state}")
 
-        # --------------------------------------------------
-        # Decision Engine
-        # --------------------------------------------------
-
         state.decision = decision_engine.decide(
             state.user_input,
             state.context,
             state.plan,
         )
-
-        # --------------------------------------------------
-        # Semantic Confidence Gate
-        # --------------------------------------------------
 
         confidence = getattr(
             state.intent_result,
@@ -144,21 +155,17 @@ class PipelineController:
         )
 
         if confidence < DECISION_CONFIDENCE_THRESHOLD:
-
             print(
                 f"[DECISION] Confidence below threshold."
                 f"({confidence:2f}). Retrying decision."
             )
-
             state.decision = decision_engine.decide(
                 state.user_input,
                 state.context,
                 state.plan,
                 retry=True,
             )
-
         else:
-
             print(
                 f"[DECISION] Confidence accepted "
                 f"({confidence:.2f})"
@@ -178,10 +185,6 @@ class PipelineController:
 
         state.execution.current_state = ExecutionStates.MODEL_SELECTION
         print(f"[PIPELINE] {state.execution.current_state}")
-
-        # --------------------------------------------------
-        # Model Selection
-        # --------------------------------------------------
 
         model = model_manager.select(
             state.plan.model_capability,
@@ -208,10 +211,6 @@ class PipelineController:
 
         state.execution.current_state = ExecutionStates.TOOL_SELECTION
         print(f"[PIPELINE] {state.execution.current_state}")
-
-        # --------------------------------------------------
-        # Tool Selection
-        # --------------------------------------------------
 
         selected_tool = tool_manager.select(
             state.plan.tool_capability,
@@ -242,29 +241,13 @@ class PipelineController:
 
         state.simulation = developer.simulation
 
-        # --------------------------------------------------
-        # Execute Plan
-        # --------------------------------------------------
-
         state = execute(state)
 
-        # --------------------------------------------------
-        # Commit Memory
-        # --------------------------------------------------
-
         memory.commit(state)
-
-        # --------------------------------------------------
-        # Queue Background Tasks
-        # --------------------------------------------------
 
         scheduler.queue.add_job(
             DEFAULT_BACKGROUND_SUMMARY
         )
-
-        # --------------------------------------------------
-        # Pipeline Finished
-        # --------------------------------------------------
 
         state.execution.current_state = ExecutionStates.COMPLETE
 

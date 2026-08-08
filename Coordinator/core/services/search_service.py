@@ -8,12 +8,14 @@ The Executor never communicates directly
 with Providers.
 
 Instead, it delegates to the Search Service,
-which selects the best available Provider.
+which aggregates results from all available
+SEARCH providers.
 
-Version 1
+Version 2
 """
 
 from core.providers.manager import ProviderManager
+from core.search.aggregator import SearchAggregator
 
 
 class SearchService:
@@ -21,6 +23,9 @@ class SearchService:
     def __init__(self):
 
         self.provider_manager = ProviderManager()
+        self.aggregator = SearchAggregator(
+            self.provider_manager
+        )
 
     # ----------------------------------
     # Internet Search
@@ -32,19 +37,7 @@ class SearchService:
         max_results=5
     ):
 
-        provider = self.provider_manager.select(
-            "SEARCH"
-        )
-
-        if provider is None:
-
-            print()
-
-            print("No SEARCH provider available.")
-
-            return []
-
-        return provider.execute(
+        return self.aggregator.search(
             query=query,
-            max_results=max_results
+            max_results=max_results,
         )

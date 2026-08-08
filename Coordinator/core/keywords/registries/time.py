@@ -4,6 +4,8 @@ AIOS Time Keyword Registry
 core/keywords/registries/time.py
 ===========================================================
 
+Semantic Registry v3
+
 Canonical concepts for temporal reasoning.
 
 Important distinction
@@ -61,6 +63,10 @@ TIME = {
         "keywords": {
             "date", "today's date", "current date", "calendar",
         },
+        "confidence": 1.0,
+        "last_updated": None,
+        "source": "manual",
+        "relationships": set(),
         "confidence": 1.0,
         "last_updated": None,
         "source": "manual",

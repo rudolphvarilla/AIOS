@@ -40,6 +40,11 @@ class SearchKnowledgeEnricher:
             knowledge.relations,
         )
 
+        deterministic_facts = [
+            fact.render() for fact in getattr(knowledge, "fact_records", [])
+        ]
+
+        knowledge.facts = deterministic_facts + relation_facts
         return knowledge
 
     def build_recommendations(self, entities):
@@ -59,7 +64,6 @@ class SearchKnowledgeEnricher:
                 continue
             if entity.name in seen:
                 continue
-
             seen.add(entity.name)
             recommendations.append(entity.name)
 
@@ -67,7 +71,6 @@ class SearchKnowledgeEnricher:
 
     def build_categories(self, entities):
         categories = defaultdict(list)
-
         for entity in entities:
             categories[entity.entity_type].append(entity.name)
 
@@ -75,7 +78,6 @@ class SearchKnowledgeEnricher:
 
     def build_locations(self, entities):
         locations = []
-
         for entity in entities:
             if entity.entity_type in (
                 "CITY",
@@ -84,19 +86,16 @@ class SearchKnowledgeEnricher:
                 "AIRPORT",
             ):
                 locations.append(entity.name)
-
         return locations
 
     def build_attributes(self, entities):
         attributes = []
-
         for entity in entities:
             if entity.entity_type in (
                 "ATTRIBUTE",
                 "FEATURE",
             ):
                 attributes.append(entity.name)
-
         return attributes
 
     def build_facts(self, existing_facts, relations):

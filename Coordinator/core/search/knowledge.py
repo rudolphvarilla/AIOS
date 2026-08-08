@@ -31,6 +31,33 @@ class SearchEntity:
 
 
 # ---------------------------------------------------------
+# Fact
+# ---------------------------------------------------------
+
+@dataclass
+class SearchFact:
+    """A deterministic fact candidate with explicit provenance.
+
+    The extractor never invents a value. ``evidence`` is copied from the
+    retrieved title/snippet and ``source`` identifies the result it came from.
+    """
+
+    subject: str
+    predicate: str
+    value: str
+    source: str
+    evidence: str
+    fact_type: str = "statement"
+    confidence: float = 1.0
+
+    def render(self) -> str:
+        return (
+            f"{self.subject} {self.predicate} {self.value} "
+            f"[source: {self.source}]"
+        )
+
+
+# ---------------------------------------------------------
 # Relation
 # ---------------------------------------------------------
 
@@ -42,6 +69,11 @@ class SearchRelation:
     relation: str
 
     target: str
+
+    @property
+    def relationship(self) -> str:
+        """Backward-compatible alias for the legacy field name."""
+        return self.relation
 
 
 # ---------------------------------------------------------

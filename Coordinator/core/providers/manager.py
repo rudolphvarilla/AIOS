@@ -2,16 +2,15 @@
 AIOS Provider Manager
 core/providers/manager.py
 
-Selects the best provider
-for a requested service.
+Selects providers for requested services.
 
 Supports
 
 Priority ordering
-
 Automatic failover
+Multi-provider selection
 
-Version 1
+Version 2
 """
 
 from core.providers.registry import PROVIDERS
@@ -56,7 +55,26 @@ class ProviderManager:
         return list(self.providers.keys())
 
     # --------------------
-    # Select
+    # Candidate selection
+    # --------------------
+
+    def select_all(self, service):
+        """Return all available providers for a service in priority order."""
+
+        candidates = [
+            provider
+            for provider in self.providers.values()
+            if provider.service == service
+            and provider.available
+            and provider.instance is not None
+        ]
+
+        candidates.sort(key=lambda p: p.priority)
+
+        return [provider.instance for provider in candidates]
+
+    # --------------------
+    # Select one
     # --------------------
 
     def select(self, service):
@@ -65,16 +83,13 @@ class ProviderManager:
         print(f"Requested Service : {service}")
 
         candidates = [
-
             provider
-
             for provider in self.providers.values()
-
             if (
                 provider.service == service
                 and provider.available
+                and provider.instance is not None
             )
-
         ]
 
         candidates.sort(

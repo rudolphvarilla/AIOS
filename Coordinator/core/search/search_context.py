@@ -6,14 +6,20 @@ core/search/search_context.py
 
 Builds the unified SearchContext object.
 
-Version 4.1
+Version 4.4 - deterministic fact records and fact-aware answerability
 ===========================================================
 """
 
 from core.search.context import SearchContext
+from core.search.fivewh_validator import FiveWHValidator
+from core.search.fact_aware_answerability import FactAwareAnswerabilityValidator
 
 
 class SearchContextBuilder:
+
+    def __init__(self):
+        self.fivewh_validator = FiveWHValidator()
+        self.answerability_validator = FactAwareAnswerabilityValidator()
 
     def build(self, query, results, knowledge, summary):
         confidence = 0.40
@@ -41,6 +47,22 @@ class SearchContextBuilder:
             locations=knowledge.locations,
             attributes=knowledge.attributes,
             facts=knowledge.facts,
+            fact_records=knowledge.fact_records,
             confidence=confidence,
             result_count=len(results),
         )
+
+        context.fivewh = fivewh
+
+        if fivewh is not None:
+            context.fivewh_alignment = self.fivewh_validator.validate(
+                fivewh,
+                context,
+            )
+
+            context.answerability = self.answerability_validator.validate(
+                fivewh,
+                results,
+                summary=summary,
+                facts=knowledge.fact_records,
+            )
