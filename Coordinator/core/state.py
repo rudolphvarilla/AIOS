@@ -6,7 +6,7 @@ core/state.py
 
 Central shared state passed throughout the AIOS execution pipeline.
 
-Version 1.1 - Phase 3.1.12 5WH semantic validation
+Version 1.2 - Phase 3.1.16 semantic Builder/Judge/Manager loop
 ===========================================================
 """
 
@@ -36,9 +36,12 @@ class AIOSState:
     search_context: object | None = None
     search_evaluation: object | None = None
 
+    # Phase 3.1.16: Builder/Judge/Manager search loop telemetry.
     search_retry: bool = False
     search_retry_count: int = 0
     max_search_retry: int = 2
+    search_loop_attempts: list = None
+    search_feedback: list[str] = None
 
     working_memory: object | None = None
     session_memory: object | None = None
