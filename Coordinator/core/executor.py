@@ -66,20 +66,18 @@ def execute(state):
                 max_retries=state.max_search_retry,
             )
 
-            state.search_retry_count = max(
-                0,
-                len(state.search_loop_attempts or []) - 1,
-            )
+            state.search_retry_count = max(0, len(state.search_loop_attempts or []) - 1)
             state.search_evaluation = (
-                state.search_context.evaluation
-                if state.search_context is not None
-                else None
+                state.search_context.evaluation if state.search_context is not None else None
             )
             state.search_retry = should_retry_search(state)
+            state.search_loop_accepted = bool(
+                state.search_loop_attempts
+                and state.search_loop_attempts[-1].get("accepted", False)
+            )
             state.search_feedback = (
                 state.search_loop_attempts[-1].get("feedback", [])
-                if state.search_loop_attempts
-                else []
+                if state.search_loop_attempts else []
             )
 
             print("\n===== SEMANTIC SEARCH LOOP =====")
@@ -100,6 +98,7 @@ def execute(state):
                 state.search_summary = None
                 state.search_evaluation = None
                 state.search_retry = False
+                state.search_loop_accepted = False
 
     else:
         state.search_results = []
@@ -110,6 +109,7 @@ def execute(state):
         state.search_retry = False
         state.search_loop_attempts = []
         state.search_feedback = []
+        state.search_loop_accepted = False
 
     state.longterm_memories = longterm_retrieval.retrieve(
         query=state.user_input,
@@ -122,6 +122,18 @@ def execute(state):
             print(f"  • {memory.title}")
     else:
         print("\nLong-Term Memories Retrieved : 0")
+
+    # The Manager/Judge gate is deliberately before the LLM. If search was
+    # requested but deterministic validation exhausted its retry budget, fail
+    # closed instead of asking the LLM to manufacture an answer from weak
+    # evidence.
+    if state.decision is not None and state.decision.use_search and not state.search_loop_accepted:
+        state.response = (
+            "I could not obtain enough validated search evidence to answer this "
+            "reliably. The search manager exhausted its retry budget.\n\n"
+            f"Judge feedback: {', '.join(state.search_feedback) or 'insufficient evidence'}"
+        )
+        return state
 
     state.prompt = prompt_builder.build(state)
 
