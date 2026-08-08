@@ -25,6 +25,7 @@ class ContextEngine:
 
     def __init__(self):
         self.matcher = KeywordMatcher()
+        self.sense_resolver = SenseResolver()
 
     # =====================================================
     # Main Analysis
@@ -55,6 +56,12 @@ class ContextEngine:
         # ------------------------------------------
 
         matches = self.matcher.match(text)
+
+        matches = self.sense_resolver.resolve(
+            text,
+            matches,
+            semantic=semantic,
+        )
 
         result.matches = matches
 

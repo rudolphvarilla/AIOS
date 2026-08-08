@@ -53,8 +53,9 @@ class DeterministicEvidenceExtractor:
 
     MEASUREMENT_PATTERN = re.compile(
         r"(?P<value>[+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*"
-        r"(?P<unit>%|°\s*[CF]|\b(?:C|F|mm|cm|km|m|in|inch|inches|ft|feet|mi|miles|"
-        r"km/h|kph|mph|m/s|knots?|kt|hPa|Pa|kPa|bar|psi|kg|g|lb|lbs|L|l|mL|ml|"
+        r"(?P<unit>%|°\s*[CF]|\b(?:km/h|kph|mph|m/s|knots?|kt|"
+        r"C|F|mm|cm|km|m|in|inch|inches|ft|feet|mi|miles|"
+        r"hPa|Pa|kPa|bar|psi|kg|g|lb|lbs|L|l|mL|ml|"
         r"hours?|hrs?|minutes?|mins?|seconds?|days?|weeks?|months?|years?)\b)",
         re.IGNORECASE,
     )

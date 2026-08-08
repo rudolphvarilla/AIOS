@@ -21,21 +21,26 @@ class SearchContextBuilder:
         self.fivewh_validator = FiveWHValidator()
         self.answerability_validator = FactAwareAnswerabilityValidator()
 
-    def build(self, query, results, knowledge, summary):
+    def build(
+        self,
+        query,
+        results,
+        knowledge,
+        summary,
+        fivewh=None,
+    ):
         confidence = 0.40
 
         confidence += min(len(results), 10) * 0.04
         confidence += min(len(knowledge.entities), 20) * 0.01
         confidence += min(len(knowledge.relations), 20) * 0.02
 
-        # Source-grounded evidence is stronger than entity count. Keep the
-        # contribution bounded so many repeated measurements cannot fabricate
-        # confidence by volume alone.
+        # Phase 3.2: bounded source-grounded evidence contribution.
         confidence += min(len(knowledge.facts), 10) * 0.02
 
         confidence = min(confidence, 1.0)
 
-        return SearchContext(
+        context = SearchContext(
             topic=query,
             summary=summary,
             sources=[r.url for r in results[:5]],
@@ -53,7 +58,7 @@ class SearchContextBuilder:
         )
 
         context.fivewh = fivewh
-
+    
         if fivewh is not None:
             context.fivewh_alignment = self.fivewh_validator.validate(
                 fivewh,
@@ -66,3 +71,5 @@ class SearchContextBuilder:
                 summary=summary,
                 facts=knowledge.fact_records,
             )
+
+        return context

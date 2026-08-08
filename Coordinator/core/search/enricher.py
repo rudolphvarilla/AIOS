@@ -35,8 +35,8 @@ class SearchKnowledgeEnricher:
             knowledge.entities
         )
 
-        knowledge.facts = self.build_facts(
-            knowledge.facts,
+        relation_facts = self.build_facts(
+            [],
             knowledge.relations,
         )
 
@@ -44,7 +44,10 @@ class SearchKnowledgeEnricher:
             fact.render() for fact in getattr(knowledge, "fact_records", [])
         ]
 
-        knowledge.facts = deterministic_facts + relation_facts
+        knowledge.facts = deterministic_facts + [
+            str(fact) for fact in relation_facts
+        ]
+
         return knowledge
 
     def build_recommendations(self, entities):
