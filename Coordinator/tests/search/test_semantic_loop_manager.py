@@ -52,6 +52,7 @@ def test_manager_rebuilds_search_after_judge_failure():
     assert "where" in service.queries[1]
     assert context.evaluation.should_retry is False
     assert attempts[-1]["accepted"] is True
+    assert attempts[-1]["stagnated"] is False
     assert results
     assert knowledge is not None
     assert summary == "summary"
@@ -74,7 +75,38 @@ def test_manager_returns_best_validated_attempt_when_retry_budget_exhausts():
     assert pipeline.calls == 3
     assert len(attempts) == 3
     assert attempts[-1]["accepted"] is False
+    assert attempts[-1]["stagnated"] is False
     assert context is not None
+    assert context.evaluation.should_retry is True
+    assert results
+    assert knowledge is not None
+    assert summary == "summary"
+
+
+def test_manager_stops_when_builder_repeats_same_query():
+    service = FakeService()
+    pipeline = FakePipeline(pass_on=99)
+
+    class StagnantBuilder:
+        def build(self, **kwargs):
+            return SimpleNamespace(query="same query", attempt=kwargs.get("attempt", 0), feedback_used=[])
+
+    results, knowledge, summary, context, attempts = SemanticSearchManager(
+        builder=StagnantBuilder()
+    ).run(
+        original_query="original",
+        semantic_query="same query",
+        service=service,
+        pipeline=pipeline,
+        max_retries=5,
+    )
+
+    assert len(service.queries) == 1
+    assert pipeline.calls == 1
+    assert len(attempts) == 2
+    assert attempts[-1]["accepted"] is False
+    assert attempts[-1]["stagnated"] is True
+    assert "no new search query" in attempts[-1]["feedback"][0]
     assert context.evaluation.should_retry is True
     assert results
     assert knowledge is not None
