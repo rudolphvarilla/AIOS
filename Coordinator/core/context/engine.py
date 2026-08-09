@@ -10,7 +10,6 @@ Sources
 -------
 1. Semantic Understanding (preferred)
 2. Keyword Matcher (fallback / enrichment)
-3. Deterministic Sense Resolution for ambiguous terms
 
 ===========================================================
 """
@@ -28,7 +27,20 @@ class ContextEngine:
         self.matcher = KeywordMatcher()
         self.sense_resolver = SenseResolver()
 
-    def analyze(self, text, semantic=None):
+    # =====================================================
+    # Main Analysis
+    # =====================================================
+
+    def analyze(
+
+        self,
+
+        text,
+
+        semantic=None,
+
+    ):
+
         result = ContextResult()
 
         if semantic is not None:
@@ -38,12 +50,19 @@ class ContextEngine:
             if semantic.concepts:
                 result.semantic_primary_concept = semantic.concepts[0]
 
+        # ------------------------------------------
+        # STEP 2
+        # Keyword enrichment
+        # ------------------------------------------
+
         matches = self.matcher.match(text)
+
         matches = self.sense_resolver.resolve(
-            text=text,
-            matches=matches,
+            text,
+            matches,
             semantic=semantic,
         )
+
         result.matches = matches
 
         concepts = defaultdict(set)

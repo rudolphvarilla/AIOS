@@ -4,12 +4,13 @@ core/executor.py
 
 Executes the execution plan created by the Planner.
 
-Version 1.3 - Phase 3.1.12 5WH validation
+Version 1.5 - Phase 3.1.17 Builder/Judge/Manager semantic loop stagnation guard
 """
 
 from core.services.manager import ServiceManager
 from core.prompt.builder import PromptBuilder
 from core.search.pipeline import SearchPipeline
+from core.search.semantic_loop import SemanticSearchManager
 from core.longterm.retrieval import LongTermRetrieval
 
 from models.qwen3_4b import model as fast_general_model
@@ -20,6 +21,7 @@ from models.qwen25coder import model as coding_model
 service_manager = ServiceManager()
 prompt_builder = PromptBuilder()
 search_pipeline = SearchPipeline()
+search_loop_manager = SemanticSearchManager()
 longterm_retrieval = LongTermRetrieval()
 
 
@@ -30,9 +32,7 @@ def should_retry_search(state):
         return False
     if not state.search_evaluation.should_retry:
         return False
-    if state.search_retry_count >= state.max_search_retry:
-        return False
-    return True
+    return state.search_retry_count < state.max_search_retry
 
 
 def execute(state):
@@ -44,63 +44,62 @@ def execute(state):
         print(f"Reason     : {state.decision.reasoning}")
 
     if state.decision is not None and state.decision.use_search:
-
         service = service_manager.select("SEARCH")
 
         if service is not None:
-            while True:
+            semantic_query = ""
+            if getattr(state, "semantic", None):
+                semantic_query = getattr(state.semantic, "search_query", "") or ""
 
-                search_query = state.user_input
+            (
+                state.search_results,
+                state.search_knowledge,
+                state.search_summary,
+                state.search_context,
+                state.search_loop_attempts,
+            ) = search_loop_manager.run(
+                original_query=state.user_input,
+                semantic_query=semantic_query,
+                fivewh=getattr(state, "fivewh", None),
+                service=service,
+                pipeline=search_pipeline,
+                max_retries=state.max_search_retry,
+            )
 
-                if (
-                    getattr(state, "semantic", None)
-                    and getattr(state.semantic, "search_query", "")
-                ):
-                    search_query = state.semantic.search_query
+            state.search_retry_count = max(0, len(state.search_loop_attempts or []) - 1)
+            state.search_evaluation = (
+                state.search_context.evaluation if state.search_context is not None else None
+            )
+            state.search_retry = should_retry_search(state)
+            state.search_loop_accepted = bool(
+                state.search_loop_attempts
+                and state.search_loop_attempts[-1].get("accepted", False)
+            )
+            state.search_feedback = (
+                state.search_loop_attempts[-1].get("feedback", [])
+                if state.search_loop_attempts else []
+            )
 
-                raw_results = service.search(query=search_query)
+            print("\n===== SEMANTIC SEARCH LOOP =====")
+            for attempt in state.search_loop_attempts or []:
+                evaluation = attempt.get("evaluation")
+                print(f"Attempt          : {attempt.get('attempt', 0)}")
+                print(f"Builder Query    : {attempt['build'].query}")
+                print(f"Accepted         : {attempt.get('accepted', False)}")
+                print(f"Stagnated        : {attempt.get('stagnated', False)}")
+                if evaluation is not None:
+                    print(f"Judge Confidence : {evaluation.confidence:.2f}")
+                    print(f"Judge Reason     : {evaluation.reason}")
+                if attempt.get("feedback"):
+                    print(f"Judge Feedback   : {attempt['feedback']}")
 
-                if not raw_results:
-                    state.search_results = []
-                    state.search_knowledge = None
-                    state.search_summary = None
-                    state.search_context = None
-                    state.search_evaluation = None
-                    state.search_retry = False
-                    break
-
-                (
-                    state.search_results,
-                    state.search_knowledge,
-                    state.search_summary,
-                    state.search_context,
-                ) = search_pipeline.process(
-                    query=search_query,
-                    results=raw_results,
-                    fivewh=getattr(state, "fivewh", None),
-                )
-
-                state.search_evaluation = state.search_context.evaluation
-                state.search_retry = should_retry_search(state)
-
-                evaluation = state.search_evaluation
-
-                print("\n===== SEARCH EVALUATION =====")
-                print(f"Confidence       : {evaluation.confidence:.2f}")
-                print(f"Entities         : {evaluation.entity_count}")
-                print(f"Recommendations  : {evaluation.recommendation_count}")
-                print(f"Facts            : {evaluation.fact_count}")
-                print(f"5WH Score        : {evaluation.fivewh_score:.2f}")
-                print(f"5WH Missing      : {evaluation.fivewh_missing}")
-                print(f"Retry            : {evaluation.should_retry}")
-                print(f"Reason           : {evaluation.reason}")
-                print(f"Retry Count      : {state.search_retry_count}/{state.max_search_retry}")
-
-                if not state.search_retry:
-                    break
-
-                print("\nRetrying search...")
-                state.search_retry_count += 1
+            if state.search_context is None:
+                state.search_results = []
+                state.search_knowledge = None
+                state.search_summary = None
+                state.search_evaluation = None
+                state.search_retry = False
+                state.search_loop_accepted = False
 
     else:
         state.search_results = []
@@ -109,6 +108,9 @@ def execute(state):
         state.search_context = None
         state.search_evaluation = None
         state.search_retry = False
+        state.search_loop_attempts = []
+        state.search_feedback = []
+        state.search_loop_accepted = False
 
     state.longterm_memories = longterm_retrieval.retrieve(
         query=state.user_input,
@@ -121,6 +123,18 @@ def execute(state):
             print(f"  • {memory.title}")
     else:
         print("\nLong-Term Memories Retrieved : 0")
+
+    # The Manager/Judge gate is deliberately before the LLM. If search was
+    # requested but deterministic validation exhausted its retry budget, fail
+    # closed instead of asking the LLM to manufacture an answer from weak
+    # evidence.
+    if state.decision is not None and state.decision.use_search and not state.search_loop_accepted:
+        state.response = (
+            "I could not obtain enough validated search evidence to answer this "
+            "reliably. The search manager exhausted its retry budget.\n\n"
+            f"Judge feedback: {', '.join(state.search_feedback) or 'insufficient evidence'}"
+        )
+        return state
 
     state.prompt = prompt_builder.build(state)
 

@@ -18,8 +18,13 @@ class SearchFactExtractor:
     MEASUREMENT_PATTERN = re.compile(
         r"(?P<value>\d+(?:\.\d+)?)"
         r"(?P<space>\s*)"
-        r"(?P<unit>°[CF]|%|[A-Za-zµμ]+(?:/[A-Za-zµμ]+)?|[A-Za-zµμ]+\^[0-9]+)"
-        r"(?=\b|\s|[,.;:!?]|$)",
+        r"(?P<unit>"
+        r"°[CF]"
+        r"|%"
+        r"|[A-Za-zµμ]+(?:/[A-Za-zµμ]+)+"
+        r"|[A-Za-zµμ]+(?:\^[0-9]+)?"
+        r")"
+        r"(?=\s|[,.;:!?]|$)",
         re.IGNORECASE,
     )
 

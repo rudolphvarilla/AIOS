@@ -25,112 +25,38 @@ Prompt Blocks.
 from core.prompt.registry import PROMPT_BLOCKS
 
 
-# ---------------------------------------------------------
-# Prompt blocks that are ALWAYS required.
-# These are never controlled by ExecutionPlan.
-# ---------------------------------------------------------
-
-MANDATORY_PROMPTS = [
-
-    "user",
-
-]
+MANDATORY_PROMPTS = ["user"]
 
 
 class PromptPlanner:
 
     def plan(self, state):
+        plan = {name: False for name in PROMPT_BLOCKS}
 
-        # ---------------------------------
-        # Initialize every prompt block OFF
-        # ---------------------------------
-
-        plan = {
-
-            name: False
-
-            for name in PROMPT_BLOCKS
-
-        }
-
-        # ---------------------------------
-        # Safety
-        # ---------------------------------
-
-        if state.plan is None:
-
-            # Mandatory blocks still apply
-
+        execution_plan = getattr(state, "plan", None)
+        if execution_plan is None:
             for block in MANDATORY_PROMPTS:
-
                 plan[block] = True
-
             return plan
 
-        # ---------------------------------
-        # Prompt blocks requested by planner
-        # ---------------------------------
+        plan.update(execution_plan.prompt_flags)
 
-        plan.update(state.plan.prompt_flags)
+        session_memory_triggers = ["previous", "last", "again", "continue"]
+        longterm_triggers = ["remember", "favorite", "my", "prefer", "usually"]
 
-        # ---------------------------------
-        # Session Memory
-        # ---------------------------------
+        query = getattr(state, "user_input", "").lower()
 
-        SESSION_MEMORY_TRIGGERS = [
-
-            "previous",
-
-            "last",
-
-            "again",
-
-            "continue",
-
-        ]
-
-        # ---------------------------------
-        # Long-Term Memory
-        # ---------------------------------
-
-        LONGTERM_TRIGGERS = [
-
-            "remember",
-
-            "favorite",
-
-            "my",
-
-            "prefer",
-
-            "usually",
-
-        ]
-
-        query = state.user_input.lower()
-
-        if any(trigger in query for trigger in SESSION_MEMORY_TRIGGERS):
-
+        if any(trigger in query for trigger in session_memory_triggers):
             plan["memory"] = True
 
-        if any(trigger in query for trigger in LONGTERM_TRIGGERS):
-
+        if any(trigger in query for trigger in longterm_triggers):
             plan["longterm"] = True
 
-        # ---------------------------------
-        # Mandatory prompt blocks
-        # ---------------------------------
-
         for block in MANDATORY_PROMPTS:
-
             plan[block] = True
 
-        # ---------------------------------
-        # Search comes from Decision Engine
-        # ---------------------------------
-
-        if state.decision is not None:
-
-            plan["search"] = state.decision.use_search
+        decision = getattr(state, "decision", None)
+        if decision is not None:
+            plan["search"] = decision.use_search
 
         return plan

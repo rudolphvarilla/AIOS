@@ -34,7 +34,9 @@ class SearchContextBuilder:
         confidence += min(len(results), 10) * 0.04
         confidence += min(len(knowledge.entities), 20) * 0.01
         confidence += min(len(knowledge.relations), 20) * 0.02
-        confidence += min(len(knowledge.fact_records), 20) * 0.01
+
+        # Phase 3.2: bounded source-grounded evidence contribution.
+        confidence += min(len(knowledge.facts), 10) * 0.02
 
         confidence = min(confidence, 1.0)
 
@@ -56,7 +58,7 @@ class SearchContextBuilder:
         )
 
         context.fivewh = fivewh
-
+    
         if fivewh is not None:
             context.fivewh_alignment = self.fivewh_validator.validate(
                 fivewh,
