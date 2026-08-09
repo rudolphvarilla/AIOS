@@ -110,7 +110,12 @@ class SemanticSearchManager:
             )
 
             query_key = self._query_key(build.query)
-            if attempt > 0 and query_key == previous_query_key:
+            # A repeated query is only a stagnation condition when the Builder
+            # did not incorporate any Judge feedback. A feedback-enriched build
+            # is a deliberate retry even if the resulting query text happens to
+            # normalize to the same value as the preceding enriched build.
+            feedback_used = getattr(build, "feedback_used", []) or []
+            if attempt > 0 and query_key == previous_query_key and not feedback_used:
                 feedback = [
                     "builder produced no new search query after judge feedback"
                 ]
