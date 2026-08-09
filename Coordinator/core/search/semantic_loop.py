@@ -1,7 +1,7 @@
 """
 AIOS Semantic Search Builder / Judge / Manager loop.
 
-Phase 3.1.16
+Phase 3.1.17
 
 Builder  -> constructs the next search dataset/query.
 Judge    -> determines whether the retrieved evidence passes.
@@ -85,12 +85,17 @@ class SemanticSearchManager:
         self.builder = builder or SemanticSearchBuilder()
         self.judge = judge or SemanticSearchJudge()
 
+    @staticmethod
+    def _query_key(query):
+        """Normalize a query for deterministic stagnation detection."""
+        return " ".join(str(query or "").casefold().split())
+
     def run(self, original_query, service, pipeline, fivewh=None,
             semantic_query=None, max_retries=2):
-        previous_query = None
         feedback = []
         attempts = []
         last_success = None
+        previous_query_key = None
 
         for attempt in range(max(0, int(max_retries)) + 1):
             build = self.builder.build(
@@ -98,15 +103,42 @@ class SemanticSearchManager:
                 semantic_query=semantic_query,
                 fivewh=fivewh,
                 feedback=feedback,
-                previous_query=previous_query,
+                previous_query=(
+                    attempts[-1]["build"].query if attempts else None
+                ),
                 attempt=attempt,
             )
-            previous_query = build.query
+
+            query_key = self._query_key(build.query)
+            if attempt > 0 and query_key == previous_query_key:
+                feedback = [
+                    "builder produced no new search query after judge feedback"
+                ]
+                attempts.append({
+                    "attempt": attempt,
+                    "build": build,
+                    "evaluation": (
+                        getattr(last_success[3], "evaluation", None)
+                        if last_success is not None else None
+                    ),
+                    "accepted": False,
+                    "feedback": list(feedback),
+                    "stagnated": True,
+                })
+                break
+
+            previous_query_key = query_key
 
             raw_results = service.search(query=build.query)
             if not raw_results:
-                attempts.append({"attempt": attempt, "build": build,
-                                 "evaluation": None, "accepted": False})
+                attempts.append({
+                    "attempt": attempt,
+                    "build": build,
+                    "evaluation": None,
+                    "accepted": False,
+                    "feedback": ["search returned no results"],
+                    "stagnated": False,
+                })
                 feedback = ["search returned no results"]
                 continue
 
@@ -123,6 +155,7 @@ class SemanticSearchManager:
                 "evaluation": getattr(context, "evaluation", None),
                 "accepted": accepted,
                 "feedback": list(feedback),
+                "stagnated": False,
             })
 
             if accepted:
