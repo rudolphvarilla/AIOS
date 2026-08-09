@@ -4,7 +4,7 @@ core/executor.py
 
 Executes the execution plan created by the Planner.
 
-Version 1.4 - Phase 3.1.16 Builder/Judge/Manager semantic search loop
+Version 1.5 - Phase 3.1.17 Builder/Judge/Manager semantic loop stagnation guard
 """
 
 from core.services.manager import ServiceManager
@@ -86,6 +86,7 @@ def execute(state):
                 print(f"Attempt          : {attempt.get('attempt', 0)}")
                 print(f"Builder Query    : {attempt['build'].query}")
                 print(f"Accepted         : {attempt.get('accepted', False)}")
+                print(f"Stagnated        : {attempt.get('stagnated', False)}")
                 if evaluation is not None:
                     print(f"Judge Confidence : {evaluation.confidence:.2f}")
                     print(f"Judge Reason     : {evaluation.reason}")
