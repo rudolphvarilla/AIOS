@@ -36,6 +36,8 @@ Phase 3 is intentionally layered: query -> validated evidence -> downstream reas
 | 3.1.14 | Answerability evidence gate | `core/search/answerability.py`, `FactAwareAnswerabilityValidator`, `SearchEvaluator` |
 | 3.1.15 | Deterministic sense resolution + fact extraction | `core/context/sense.py`, `SenseResolver`, `core/search/fact_extractor.py`, `SearchFact` |
 | 3.1.16 | Semantic Builder/Judge/Manager retry loop | semantic loop builder/judge/manager, retry/termination policy, regression tests |
+| 3.1.17 | Project-state continuity baseline | `AIOS_STATE/`, repository-resume workflow, persistent phase/branch/task records |
+| 3.1.18 | Stabilization and integration verification | retry/contract repairs, answerability precedence, semantic-loop integration tests, full-suite verification |
 
 #### Builder / Judge / Manager
 
@@ -85,6 +87,8 @@ Optional integrations such as travel monitoring, academic workflows, photography
 
 When a file/class is added, removed, renamed, refactored, or made obsolete, update the phase inventory and current state. The roadmap describes responsibility; the code and tests remain authoritative for exact behavior.
 
-## Synchronization note
+## Current synchronization state
 
-The remote branch snapshot available to the coordinator currently reaches Phase 3.1.14, while the developer reports local progress through Phase 3.1.16. The latest local report is 51 tests: 50 passed and 1 retry-budget test failed. Do not claim the remote contains 3.1.16 until that branch is actually pushed.
+Phase 3.1.18 stabilization has been pushed and rebased onto the current `main` baseline. The full test suite on the stabilization branch is green at **53/53 tests passed**. PR #10 is the delivery path from `phase-3.1.18-stabilization` into `main`.
+
+Do not advance to a new phase until PR #10 is merged and the next phase is explicitly established from the repository state.
