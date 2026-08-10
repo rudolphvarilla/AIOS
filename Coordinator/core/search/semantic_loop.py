@@ -1,7 +1,7 @@
 """
 AIOS Semantic Search Builder / Judge / Manager loop.
 
-Phase 3.1.17
+Phase 3.1.18
 
 Builder  -> constructs the next search dataset/query.
 Judge    -> determines whether the retrieved evidence passes.
@@ -96,8 +96,9 @@ class SemanticSearchManager:
         attempts = []
         last_success = None
         previous_query_key = None
+        retry_budget = max(0, int(max_retries))
 
-        for attempt in range(max(0, int(max_retries)) + 1):
+        for attempt in range(retry_budget + 1):
             build = self.builder.build(
                 original_query=original_query,
                 semantic_query=semantic_query,
@@ -115,7 +116,12 @@ class SemanticSearchManager:
             # is a deliberate retry even if the resulting query text happens to
             # normalize to the same value as the preceding enriched build.
             feedback_used = getattr(build, "feedback_used", []) or []
-            if attempt > 0 and query_key == previous_query_key and not feedback_used:
+            if (
+                attempt > 0
+                and query_key == previous_query_key
+                and not feedback_used
+                and attempt < retry_budget
+            ):
                 feedback = [
                     "builder produced no new search query after judge feedback"
                 ]
@@ -147,11 +153,26 @@ class SemanticSearchManager:
                 feedback = ["search returned no results"]
                 continue
 
-            search_results, knowledge, summary, context = pipeline.process(
+            # Normalize the pipeline boundary here. Production SearchPipeline
+            # returns three values, while older test doubles and compatibility
+            # callers may still return four. The manager accepts both shapes
+            # without changing its five-value public result contract.
+            processed = pipeline.process(
                 query=build.query,
                 results=raw_results,
                 fivewh=fivewh,
             )
+            if len(processed) == 3:
+                search_results, knowledge, context = processed
+                summary = getattr(context, "summary", "")
+            elif len(processed) == 4:
+                search_results, knowledge, summary, context = processed
+            else:
+                raise ValueError(
+                    "SearchPipeline.process() must return 3 or 4 values; "
+                    f"received {len(processed)}"
+                )
+
             last_success = (search_results, knowledge, summary, context)
             accepted, feedback = self.judge.judge(context)
             attempts.append({
