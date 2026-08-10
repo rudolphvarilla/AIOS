@@ -1,49 +1,47 @@
 # Current Branch / Task
 
 ## Branch
-`phase-3.1.17-project-state`
+`phase-3.1.18-stabilization`
 
-## Parent phase
-Phase 3.1.16 semantic Builder/Judge/Manager loop
+## Parent
+Current `main` baseline at `3f3c7ed65cced5351d1ef52c040a5909e70329ef` when the stabilization branch was rebased.
 
 ## Purpose
-Create durable project memory inside the repository so future sessions can resume from code + state files instead of reconstructing the project from chat history.
+Complete Phase 3.1.18 stabilization, verify the integrated semantic-search behavior, and deliver the green branch into `main` through PR #10.
 
-## Current task
-Add the project-state file series and preserve the current Phase 3.1.16 retry-budget failure as the active implementation task.
+## Current status
+- PR #10: `Phase 3.1.18 stabilization`
+- Base: `main`
+- Head: `phase-3.1.18-stabilization`
+- Branch was rebased onto current `main` before PR creation.
+- The semantic-loop rebase conflict was resolved by preserving both feedback-aware repeated-query handling and the exact retry-budget condition.
 
-## Important synchronization fact
-The remote repository currently exposes Phase 3.1.14 as its newest development branch, while the developer's local workspace is reported to be at Phase 3.1.16. This branch therefore documents the reported local state but does not claim to contain the local 3.1.16 implementation.
-
-## Tests reported before this branch
+## Tests
 `python -m pytest -v`
 
-- 51 collected
-- 50 passed
-- 1 failed
-- retry-budget exhaustion test expects 3 calls for `max_retries=2`, but observed 2.
+- 53 collected
+- 53 passed
+- full suite green after the rebase conflict resolution.
+
+## Work completed
+- Phase 3.1.18 stabilization fixes implemented.
+- Integration verification completed.
+- Answerability precedence and compatibility behavior verified.
+- Exact retry-budget semantics verified.
+- Full regression suite green.
+
+## Remaining work
+Only final review and merge of PR #10 remain for this phase. Do not start a new implementation phase from this branch before PR #10 is merged and the next phase is explicitly established.
 
 ## Work boundaries
 Do:
-- keep the state files concise and authoritative about intent;
-- fix the retry-count contract in the actual 3.1.16 branch after it is synchronized to GitHub;
-- preserve builder feedback, repeated-build termination, and best-attempt fallback.
+- preserve the Builder/Judge/Manager architecture;
+- preserve validated evidence and answerability behavior;
+- keep the 53-test suite green;
+- update project-state files when repository state changes.
 
 Do not:
-- bypass the Judge to make tests pass;
 - weaken deterministic validators;
-- start Phase 4 before Phase 3.1.16 is green;
-- mix unrelated experiments into the active phase.
-
-## Temporary branch rule
-For a one-off experiment, create a separate branch and record its purpose here. If successful, incorporate it deliberately. If unsuccessful, record the reason and discard it.
-
-## Completion
-After the state-system branch is accepted:
-1. synchronize/pull the latest implementation branch;
-2. fix the 3.1.16 retry-budget failure;
-3. run focused tests;
-4. run full suite;
-5. update `CURRENT_PHASE.md`;
-6. push;
-7. merge only when explicitly requested.
+- change retry semantics without regression coverage;
+- start unrelated experiments on the stabilization branch;
+- advance the roadmap automatically before the stabilization merge is complete.
