@@ -153,18 +153,26 @@ class SemanticSearchManager:
                 feedback = ["search returned no results"]
                 continue
 
-            # SearchPipeline.process() has a three-value public return contract:
-            # unique results, extracted knowledge, and the fully evaluated
-            # SearchContext. The summary is carried by SearchContext.summary.
-            # Keep the manager's historical five-value outward contract by
-            # deriving summary from the returned context instead of expecting
-            # a fourth pipeline value.
-            search_results, knowledge, context = pipeline.process(
+            # Normalize the pipeline boundary here. Production SearchPipeline
+            # returns three values, while older test doubles and compatibility
+            # callers may still return four. The manager accepts both shapes
+            # without changing its five-value public result contract.
+            processed = pipeline.process(
                 query=build.query,
                 results=raw_results,
                 fivewh=fivewh,
             )
-            summary = getattr(context, "summary", "")
+            if len(processed) == 3:
+                search_results, knowledge, context = processed
+                summary = getattr(context, "summary", "")
+            elif len(processed) == 4:
+                search_results, knowledge, summary, context = processed
+            else:
+                raise ValueError(
+                    "SearchPipeline.process() must return 3 or 4 values; "
+                    f"received {len(processed)}"
+                )
+
             last_success = (search_results, knowledge, summary, context)
             accepted, feedback = self.judge.judge(context)
             attempts.append({
