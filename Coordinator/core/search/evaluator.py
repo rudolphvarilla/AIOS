@@ -95,11 +95,12 @@ class SearchEvaluator:
         fivewh_missing = alignment.missing if alignment is not None else []
 
         answerability = getattr(context, "answerability", None)
+        answerability_available = answerability is not None
         answerability_score = (
-            answerability.score if answerability is not None else 1.0
+            answerability.score if answerability_available else 1.0
         )
         answerability_missing = (
-            answerability.missing if answerability is not None else []
+            answerability.missing if answerability_available else []
         )
 
         # Confidence now reflects three different questions:
@@ -114,20 +115,27 @@ class SearchEvaluator:
         )
         confidence = min(1.0, max(0.0, confidence))
 
-        if search_confidence < DECISION_CONFIDENCE_THRESHOLD:
-            should_retry = True
-            reason = "Low search confidence"
-        elif fivewh_score < 0.70:
-            should_retry = True
-            reason = "5WH evidence misalignment"
-        elif fivewh_missing:
-            should_retry = True
-            reason = "Missing 5WH evidence: " + ", ".join(fivewh_missing)
-        elif answerability_score < 0.60:
+        # Answerability is the decisive gate when the context builder has
+        # validated explicit answer-bearing evidence. Sparse-result context
+        # confidence is a richness signal and must not force another search
+        # after a complete answer has already been validated. If answerability
+        # is unavailable, the legacy search-confidence threshold remains the
+        # fallback gate. 5WH gaps remain retry-worthy only when they materially
+        # reduce alignment or the evidence is not otherwise answer-bearing.
+        if answerability_available and answerability_score < 0.60:
             should_retry = True
             reason = "Insufficient answer-bearing evidence"
             if answerability_missing:
                 reason += ": " + ", ".join(answerability_missing)
+        elif fivewh_score < 0.70:
+            should_retry = True
+            reason = "5WH evidence misalignment"
+        elif answerability_available and fivewh_missing and answerability_score < 1.0:
+            should_retry = True
+            reason = "Missing 5WH evidence: " + ", ".join(fivewh_missing)
+        elif not answerability_available and search_confidence < DECISION_CONFIDENCE_THRESHOLD:
+            should_retry = True
+            reason = "Low search confidence"
         else:
             should_retry = False
             reason = "Search confidence, 5WH alignment, and answerability accepted"
