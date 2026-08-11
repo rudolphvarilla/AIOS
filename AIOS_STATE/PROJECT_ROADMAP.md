@@ -27,7 +27,7 @@ Responsibilities include model registry/selection, coordinator state, capability
 
 Phase 3 is intentionally layered: query -> validated evidence -> downstream reasoning, not query -> unchecked LLM answer.
 
-#### 3.1 Semantic understanding and search validation
+#### 3.1 Semantic understanding and search validation — COMPLETE
 
 | Phase | Purpose | Key files/classes |
 |---|---|---|
@@ -66,6 +66,61 @@ Original Query
 
 **Manager** owns retry counting, feedback propagation, attempt history, repeated-build detection, acceptance, and retry-budget termination.
 
+#### 3.2 Iterative Context Construction — CURRENT
+
+**Purpose:** complete the connection between the Phase 3.1 semantic/evidence system and actual AIOS execution. Phase 3.2 is not a replacement for Builder/Judge/Manager; it closes the integration and contract gaps required for validated Phase 3 context to become usable by the real AIOS pipeline.
+
+The work proceeds from the post-3.1.18 `main` baseline and must be verified through the actual AIOS execution path.
+
+Planned progression:
+
+- **3.2.0 — Documentation reconciliation and project backup**
+  - establish the post-3.1.18 baseline;
+  - preserve a full backup of the pre-3.2 state;
+  - synchronize project state documentation.
+- **3.2.1 — Local agent setup and testing**
+  - establish a local development-agent workflow;
+  - verify repository/terminal access and regression-test execution;
+  - determine whether local Git/test operations can be delegated safely.
+- **3.2.2 — Phase 3.1 → AIOS integration-gap audit**
+  - trace the real Coordinator → Semantic Understanding → Planner → Router → Search → Phase 3.1 → Prompt Builder → LLM path;
+  - identify where validated Phase 3 context is lost, flattened, bypassed, or improperly transformed;
+  - determine the minimum changes required to make Phase 3.1 a real AIOS execution component.
+- **3.2.x — Integration fixes and verification**
+  - implement only confirmed gaps;
+  - use Stems for significant experimental implementations;
+  - test each accepted Stem against the real AIOS pipeline;
+  - integrate successful Stems into the Current Goal and prune failed Stems.
+
+### Stem workflow
+
+A **Stem** is a temporary experimental branch used when an important function or implementation approach needs to be inserted and tested without committing the approach to the Current Goal.
+
+```text
+Current Goal
+     |
+     +---- Stem ---- test ---- FAIL ----> PRUNE
+     |
+     +---- Stem ---- test ---- PASS ----> INTEGRATE
+                                          |
+                                          v
+                                    regression test
+                                          |
+                                          v
+                                    update Current Goal
+```
+
+A Stem is not a permanent roadmap phase. It exists only to test a meaningful implementation hypothesis. A failed Stem is pruned; a successful Stem is integrated and then becomes part of the Current Goal after regression verification.
+
+### Phase 3.3 — AIOS Integration Validation and Output Architecture
+**Goal:** validate the completed Phase 3 system through the actual AIOS runtime and clean up the development-facing output architecture.
+
+Planned areas:
+- full AIOS end-to-end regression of Phase 3 implementations;
+- development-output refactor so diagnostic/development output is separated from `coordinator.py` responsibilities;
+- `/help` command refactor to reflect the current command/test surface;
+- final Phase 3 acceptance gate.
+
 ### Phase 4 — Answer synthesis and tool-aware execution
 **Goal:** pass only validated evidence to the appropriate LLM/tool executor and preserve provenance into the final answer.
 
@@ -85,10 +140,30 @@ Optional integrations such as travel monitoring, academic workflows, photography
 
 ## Inventory rule
 
-When a file/class is added, removed, renamed, refactored, or made obsolete, update the phase inventory and current state. The roadmap describes responsibility; the code and tests remain authoritative for exact behavior.
+When a file/class is added, removed, renamed, refactored, or made obsolete, update the phase inventory and current state. The repository file-tree/inventory document, once located or established, must remain synchronized with this roadmap. The roadmap describes responsibility; the code and tests remain authoritative for exact behavior.
 
 ## Current synchronization state
 
-Phase 3.1.18 stabilization has been pushed and rebased onto the current `main` baseline. The full test suite on the stabilization branch is green at **53/53 tests passed**. PR #10 is the delivery path from `phase-3.1.18-stabilization` into `main`.
+- `main` is the active development baseline after Phase 3.1.18 stabilization PR #10 was merged.
+- `backup/phase-3.1.18-main-2026-08-11` preserves the pre-3.2 `main` state.
+- The known Phase 3 regression baseline is **53/53 tests passed**.
+- `phase-3.2.0v2-documentation-reconciliation` is the documentation-only reconciliation Stem/branch created from `main`.
+- This documentation checkpoint must be integrated into `main` before 3.2.1/3.2.2 implementation work is advanced.
 
-Do not advance to a new phase until PR #10 is merged and the next phase is explicitly established from the repository state.
+## Current Goal
+
+**Phase 3.2 — Connect and harden Phase 3.1 into actual AIOS execution.**
+
+Immediate task: **3.2.2v2 — audit the real Phase 3.1 → AIOS execution path and identify only the confirmed integration gaps.**
+
+Do not redesign working Phase 3.1 components merely for architectural preference. Do not create new abstractions until the audit demonstrates that they are required by an actual integration gap.
+
+After every successful test gate, update the Current Goal/state documentation before beginning the next task.
+
+## State vocabulary
+
+- **Project:** the long-term AIOS architecture and roadmap.
+- **Current Goal:** the active implementation objective and immediate next task.
+- **Stem:** a temporary experimental implementation branch for a meaningful hypothesis.
+- **Prune:** abandon a failed Stem without integrating it.
+- **Integrate:** merge a successful Stem into the Current Goal after verification.
