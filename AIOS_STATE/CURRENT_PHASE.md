@@ -1,42 +1,30 @@
 # Current Phase
 
 ## Active phase
-**Phase 3.1.18 — Stabilization**
+**Phase 3.2.1v2 — Local development-agent re-verification**
 
-## Status
-**Implementation complete; pending merge into `main` via PR #10.**
+## Current goal
+Provide a controlled local agent that can run the standard real-AIOS regression
+queries through the existing Coordinator workflow and return one structured,
+bounded report for inspection.
 
-## Goal
-Stabilize the Phase 3.1.17 project-state baseline while preserving the semantic Builder → Judge → Manager architecture and reach a green full test suite.
+## Acceptance criteria
+- `local_agent\run_agent.bat regression` runs R1 weather, R2 mountain, and R3
+  arithmetic through `Coordinator/coordinator.py`.
+- Every case records success, timeout/return status, stdout, stderr, and elapsed
+  time in JSON.
+- A timed-out Coordinator query returns a report rather than hanging the agent.
+- Coordinator retains ownership of development output and execution.
+- Local-agent tests pass before this Stem is integrated.
 
-The stabilization work includes:
-- resolving the accompanying test/collection and contract errors;
-- preserving exact retry-budget semantics;
-- preserving Judge-feedback-aware repeated-query handling;
-- preserving the validated answerability gate and compatibility contracts;
-- verifying the integrated semantic-search path with regression coverage.
+## Verified gate
+- Focused local-agent unit tests passed.
+- A one-second-per-query smoke regression reported all cases as `timeout` and
+  exited normally, proving bounded timeout reporting.
+- Existing Coordinator suite passed: 53 tests.
 
-## Acceptance result
-- `python -m pytest -v`
-- **53 tests collected**
-- **53 passed**
-- full suite green after the stabilization branch was rebased onto current `main` and the semantic-loop conflict was resolved by preserving both feedback-aware retry detection and the exact retry budget.
-
-## Architecture preserved
-- Builder creates or reconstructs the evidence/search dataset.
-- Judge evaluates semantic alignment and answerability and returns structured feedback.
-- Manager owns retry counting, feedback propagation, attempt history, repeated-build detection, acceptance, and retry-budget termination.
-- Validated answerability remains authoritative when available; sparse search confidence remains the fallback when answerability is unavailable.
-
-## Completion checklist
-- [x] accompanying Phase 3.1.18 test/collection and contract errors resolved;
-- [x] semantic Builder/Judge/Manager architecture preserved;
-- [x] retry-budget contract verified;
-- [x] feedback-aware repeated-query handling verified;
-- [x] integration verification tests pass;
-- [x] full `python -m pytest -v` passes with 53/53 tests;
-- [x] stabilization branch rebased onto current `main`;
-- [x] PR #10 opened from `phase-3.1.18-stabilization` into `main`.
-
-## Next phase
-No new phase is authorized by this state update. After PR #10 is merged, establish the next phase from the roadmap and repository state rather than advancing automatically.
+## Boundaries
+- Do not modify `coordinator.py` for local-agent reporting.
+- Do not expose a raw shell or remote transport.
+- This work is a Phase 3.2.1v2 Stem; it does not alter the Phase 3.1 semantic
+  search architecture.

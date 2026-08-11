@@ -1,47 +1,33 @@
-# Current Branch / Task
+# Current Branch / Stem
 
 ## Branch
-`phase-3.1.18-stabilization`
+`phase-3.2.1v2-local-agent`
 
 ## Parent
-Current `main` baseline at `3f3c7ed65cced5351d1ef52c040a5909e70329ef` when the stabilization branch was rebased.
+The Phase 3.2.1v2 local-agent stem is based on the post-3.1.18 development
+baseline and must remain separate from `main` until reviewed.
 
 ## Purpose
-Complete Phase 3.1.18 stabilization, verify the integrated semantic-search behavior, and deliver the green branch into `main` through PR #10.
+Re-verify and extend the controlled local development agent. The active Stem
+runs the three standard real-AIOS regression queries and returns a single JSON
+report with bounded per-query execution.
 
 ## Current status
-- PR #10: `Phase 3.1.18 stabilization`
-- Base: `main`
-- Head: `phase-3.1.18-stabilization`
-- Branch was rebased onto current `main` before PR creation.
-- The semantic-loop rebase conflict was resolved by preserving both feedback-aware repeated-query handling and the exact retry-budget condition.
+- Local-agent foundation, launcher, controlled query action, and path handling
+  are present on this branch.
+- Autonomous R1/R2/R3 execution, JSON report-level tests, and a timeout smoke
+  gate have passed.
 
-## Tests
-`python -m pytest -v`
+## Test gates
+- Focused local-agent unit tests: passed.
+- One-second-per-query smoke regression: passed as a runner test; every case
+  was reported as `timeout` without a hang.
+- Existing Coordinator suite: 53 passed.
+- Run the normal 300-second regression separately to assess real AIOS behavior;
+  its case outcomes are AIOS evidence, not local-agent runner failures.
 
-- 53 collected
-- 53 passed
-- full suite green after the rebase conflict resolution.
-
-## Work completed
-- Phase 3.1.18 stabilization fixes implemented.
-- Integration verification completed.
-- Answerability precedence and compatibility behavior verified.
-- Exact retry-budget semantics verified.
-- Full regression suite green.
-
-## Remaining work
-Only final review and merge of PR #10 remain for this phase. Do not start a new implementation phase from this branch before PR #10 is merged and the next phase is explicitly established.
-
-## Work boundaries
-Do:
-- preserve the Builder/Judge/Manager architecture;
-- preserve validated evidence and answerability behavior;
-- keep the 53-test suite green;
-- update project-state files when repository state changes.
-
-Do not:
-- weaken deterministic validators;
-- change retry semantics without regression coverage;
-- start unrelated experiments on the stabilization branch;
-- advance the roadmap automatically before the stabilization merge is complete.
+## Boundaries
+- Keep Coordinator as coordinator; local-agent owns process driving and result
+  capture only.
+- Do not merge this Stem into `main` directly.
+- Record the normal regression outcome here before beginning another task.

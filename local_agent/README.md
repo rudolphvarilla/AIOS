@@ -9,10 +9,29 @@ The local agent is a controlled bridge between a remote development controller a
 Initial responsibilities:
 
 - verify the AIOS workspace and virtual environment
-- run the canonical regression suite
+- run the three standard real-AIOS regression queries through Coordinator
 - run an AIOS query through the existing developer workflow
 - capture stdout, stderr, exit code, and timing
 - provide structured results suitable for a future authenticated remote relay
+
+## Commands
+
+```bat
+local_agent\run_agent.bat verify
+local_agent\run_agent.bat git-status
+local_agent\run_agent.bat query "what is 2+2"
+local_agent\run_agent.bat regression
+```
+
+`regression` runs these queries in order, with a 300-second timeout for each:
+
+- R1: `current weather in philippines`
+- R2: `tallest mountain in the philippines`
+- R3: `what is 2+2`
+
+It prints one JSON report containing the status, success flag, return code,
+captured stdout/stderr, error (including `timeout`), and elapsed time for every
+case. Use `--timeout SECONDS` to set a different per-query limit.
 
 ## Current security boundary
 
