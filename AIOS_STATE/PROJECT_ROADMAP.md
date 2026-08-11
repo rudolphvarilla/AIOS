@@ -1,169 +1,58 @@
 # AIOS Project Roadmap
 
-## North-star goal
-
-Build AIOS as an autonomous personal AI operating system: one assistant/coordinator that can understand intent, plan work, use specialized capabilities, validate evidence/results, retain useful state, and execute long-running tasks safely and transparently.
-
-The architecture remains modular so models, search providers, tools, memory systems, and execution backends can be replaced without rewriting the coordinator.
-
-## Roadmap
-
-### Phase 1 — Core foundation
-**Goal:** establish the executable coordinator and basic request lifecycle.
-
-Representative areas visible in repository history:
-- `Coordinator/core/context/` — request/context analysis and result state.
-- `Coordinator/core/keywords/` — deterministic keyword/domain registries and matching.
-- `Coordinator/core/services/` — service/provider abstractions.
-- coordinator/model/router/planning components — choose capabilities and execution paths.
-
-### Phase 2 — Coordinator intelligence and instrumentation
-**Goal:** make routing, planning, model selection, and execution measurable rather than one hard-coded path.
-
-Responsibilities include model registry/selection, coordinator state, capability routing, performance instrumentation, and deterministic fallbacks.
-
-### Phase 3 — Semantic search and evidence intelligence
-**Goal:** turn raw search into a validated, source-grounded evidence dataset that an answering model can safely consume.
-
-Phase 3 is intentionally layered: query -> validated evidence -> downstream reasoning, not query -> unchecked LLM answer.
-
-#### 3.1 Semantic understanding and search validation — COMPLETE
-
-| Phase | Purpose | Key files/classes |
-|---|---|---|
-| 3.1.12 | 5WH semantic search validation | `core/semantics/`, `core/search/fivewh_validator.py`, search context/evaluation |
-| 3.1.13 | Multi-provider search aggregation | `core/search/aggregator.py`, provider manager selection, `SearchService` |
-| 3.1.14 | Answerability evidence gate | `core/search/answerability.py`, `FactAwareAnswerabilityValidator`, `SearchEvaluator` |
-| 3.1.15 | Deterministic sense resolution + fact extraction | `core/context/sense.py`, `SenseResolver`, `core/search/fact_extractor.py`, `SearchFact` |
-| 3.1.16 | Semantic Builder/Judge/Manager retry loop | semantic loop builder/judge/manager, retry/termination policy, regression tests |
-| 3.1.17 | Project-state continuity baseline | `AIOS_STATE/`, repository-resume workflow, persistent phase/branch/task records |
-| 3.1.18 | Stabilization and integration verification | retry/contract repairs, answerability precedence, semantic-loop integration tests, full-suite verification |
-
-#### Builder / Judge / Manager
-
-```text
-Original Query
-     |
-     v
-  BUILDER  ---> evidence/search dataset
-     |
-     v
-   JUDGE   ---> pass / fail + structured feedback
-     |
-     +---- PASS ----> validated dataset -> downstream LLM
-     |
-     +---- FAIL ----> MANAGER records attempt
-                         |
-                         v
-                    BUILDER + feedback
-                         |
-                         +----> next attempt
-```
-
-**Builder** constructs or reconstructs the dataset, preserves the original query, and injects judge feedback into retries.
-
-**Judge** evaluates semantic alignment and answerability, returning structured reasons for failure.
-
-**Manager** owns retry counting, feedback propagation, attempt history, repeated-build detection, acceptance, and retry-budget termination.
-
-#### 3.2 Iterative Context Construction — CURRENT
-
-**Purpose:** complete the connection between the Phase 3.1 semantic/evidence system and actual AIOS execution. Phase 3.2 is not a replacement for Builder/Judge/Manager; it closes the integration and contract gaps required for validated Phase 3 context to become usable by the real AIOS pipeline.
-
-The work proceeds from the post-3.1.18 `main` baseline and must be verified through the actual AIOS execution path.
-
-Planned progression:
-
-- **3.2.0 — Documentation reconciliation and project backup**
-  - establish the post-3.1.18 baseline;
-  - preserve a full backup of the pre-3.2 state;
-  - synchronize project state documentation.
-- **3.2.1 — Local agent setup and testing**
-  - establish a local development-agent workflow;
-  - verify repository/terminal access and regression-test execution;
-  - determine whether local Git/test operations can be delegated safely.
-- **3.2.2 — Phase 3.1 → AIOS integration-gap audit**
-  - trace the real Coordinator → Semantic Understanding → Planner → Router → Search → Phase 3.1 → Prompt Builder → LLM path;
-  - identify where validated Phase 3 context is lost, flattened, bypassed, or improperly transformed;
-  - determine the minimum changes required to make Phase 3.1 a real AIOS execution component.
-- **3.2.x — Integration fixes and verification**
-  - implement only confirmed gaps;
-  - use Stems for significant experimental implementations;
-  - test each accepted Stem against the real AIOS pipeline;
-  - integrate successful Stems into the Current Goal and prune failed Stems.
-
-### Stem workflow
-
-A **Stem** is a temporary experimental branch used when an important function or implementation approach needs to be inserted and tested without committing the approach to the Current Goal.
-
-```text
-Current Goal
-     |
-     +---- Stem ---- test ---- FAIL ----> PRUNE
-     |
-     +---- Stem ---- test ---- PASS ----> INTEGRATE
-                                          |
-                                          v
-                                    regression test
-                                          |
-                                          v
-                                    update Current Goal
-```
-
-A Stem is not a permanent roadmap phase. It exists only to test a meaningful implementation hypothesis. A failed Stem is pruned; a successful Stem is integrated and then becomes part of the Current Goal after regression verification.
-
-### Phase 3.3 — AIOS Integration Validation and Output Architecture
-**Goal:** validate the completed Phase 3 system through the actual AIOS runtime and clean up the development-facing output architecture.
-
-Planned areas:
-- full AIOS end-to-end regression of Phase 3 implementations;
-- development-output refactor so diagnostic/development output is separated from `coordinator.py` responsibilities;
-- `/help` command refactor to reflect the current command/test surface;
-- final Phase 3 acceptance gate.
-
-### Phase 4 — Answer synthesis and tool-aware execution
-**Goal:** pass only validated evidence to the appropriate LLM/tool executor and preserve provenance into the final answer.
-
-Expected areas: answer synthesis, citation/source rendering, tool invocation, distinction between source facts and model inference, and final response state.
-
-### Phase 5 — Memory and long-running task state
-**Goal:** durable memory, background task continuity, caching, resumable workflows, and scheduler state.
-
-### Phase 6 — Autonomous operating system layer
-**Goal:** multi-agent/tool coordination, permissions, event triggers, task queues, recovery, and observability.
-
-### Stable AIOS
-A dependable continuously running personal AIOS with predictable termination, provenance preservation, fallbacks, resumable tasks, and green regression tests.
-
-### Expanded AIOS
-Optional integrations such as travel monitoring, academic workflows, photography/event systems, NAS/storage, local models, application generation, and external automation. These must plug into the coordinator rather than become special cases in core semantic/search logic.
-
-## Inventory rule
-
-When a file/class is added, removed, renamed, refactored, or made obsolete, update the phase inventory and current state. The repository file-tree/inventory document, once located or established, must remain synchronized with this roadmap. The roadmap describes responsibility; the code and tests remain authoritative for exact behavior.
-
-## Current synchronization state
-
-- `main` is the active development baseline after Phase 3.1.18 stabilization PR #10 was merged.
-- `backup/phase-3.1.18-main-2026-08-11` preserves the pre-3.2 `main` state.
-- The known Phase 3 regression baseline is **53/53 tests passed**.
-- `phase-3.2.0v2-documentation-reconciliation` is the documentation-only reconciliation Stem/branch created from `main`.
-- This documentation checkpoint must be integrated into `main` before 3.2.1/3.2.2 implementation work is advanced.
+## Project
+AIOS (Artificial Intelligence Operating System) is being developed as a modular AI operating system and personal AI platform. The architecture is built incrementally, with deterministic orchestration, semantic understanding, evidence-grounded search, iterative context construction, and eventually autonomous operation.
 
 ## Current Goal
-
 **Phase 3.2 — Connect and harden Phase 3.1 into actual AIOS execution.**
 
-Immediate task: **3.2.2v2 — audit the real Phase 3.1 → AIOS execution path and identify only the confirmed integration gaps.**
+Phase 3.1 established semantic context, deterministic evidence, search processing, answerability, and the iterative Builder/Judge/Manager foundation. Phase 3.2 closes the remaining integration gaps between those components and the real AIOS execution path.
 
-Do not redesign working Phase 3.1 components merely for architectural preference. Do not create new abstractions until the audit demonstrates that they are required by an actual integration gap.
+### 3.2 workflow
+1. Audit the actual Phase 3.1 → Coordinator → Prompt Builder → LLM path.
+2. Identify where Phase 3.1 outputs are bypassed, lost, flattened, or not consumed.
+3. Create a **Stem** for each important proposed fix.
+4. Test the Stem against the real AIOS execution path.
+5. **Prune** a Stem if it does not solve the identified problem.
+6. If successful, **integrate** the Stem into the Current Goal implementation.
+7. Run the relevant regression/integration tests.
+8. After every successful test gate, update Project/Current Goal/Stem state documentation before beginning the next task.
 
-After every successful test gate, update the Current Goal/state documentation before beginning the next task.
+### 3.2.0v2
+Documentation reconciliation and project-state correction based on the post-3.1.18 `main` baseline.
 
-## State vocabulary
+### 3.2.1v2
+Re-verify the local development-agent capability established during the original 3.2.1 work, including access to `C:\AIOS\Coordinator`, the project virtual environment, Python, Git, and the full regression suite.
 
-- **Project:** the long-term AIOS architecture and roadmap.
-- **Current Goal:** the active implementation objective and immediate next task.
-- **Stem:** a temporary experimental implementation branch for a meaningful hypothesis.
-- **Prune:** abandon a failed Stem without integrating it.
-- **Integrate:** merge a successful Stem into the Current Goal after verification.
+### 3.2.2v2
+Audit and close the real integration gaps between Phase 3.1 and the actual AIOS execution pipeline. Do not redesign working Phase 3.1 components without evidence that a redesign is necessary.
+
+## Stem
+A **Stem** is a temporary experimental implementation used when an important function or integration point needs to be inserted, changed, or tested. A Stem is not part of the Current Goal until it demonstrates that it solves the target problem.
+
+### Stem lifecycle
+`Current Goal → Stem → Test → Prune OR Integrate → Regression → Documentation update`
+
+## Added Features / Later Infrastructure
+These are intentionally outside the immediate Phase 3.2 implementation unless a dependency is discovered:
+
+- Mobile workstation / remote development capability, to allow AIOS development and recovery from a mobile device when the local Windows machine is unavailable.
+- Local development agent.
+- Independent CI/test execution.
+- Crash capture and reproducible crash bundles.
+- AIOS watchdog and recovery infrastructure.
+- Remote development/control layer.
+
+The **Mobile workstation** is planned **after AIOS stabilization**, rather than being introduced into the current Phase 3.2 search/context work.
+
+## Phase 3.3 — Actual AIOS Validation and Development Output Refactor
+After Phase 3.2 is integrated and stable, Phase 3.3 will test the completed implementations through the actual AIOS execution path. It will also refactor development/debug output so that Coordinator remains a coordinator rather than becoming a development-output container, and will update/refactor `/help` to reflect the expanded system functionality.
+
+## Phase 4 — Autonomous Reasoning
+Phase 4 builds on validated Phase 3 context and execution integration to introduce autonomous multi-step reasoning and agent cooperation. Planned capabilities include research, memory, travel, coding, and other specialized agents coordinated by AIOS.
+
+## Phase 5 — AIOS Operating System
+Long-term autonomous operation: background scheduler, watcher agents, calendar/travel/email monitoring, NAS indexing, photo/project organization, self-maintaining memory, and continuous background reasoning.
+
+## State Discipline
+`main` is the current post-3.1.18 development baseline. The `backup/phase-3.1.18-main-2026-08-11` branch is the safety snapshot. Experimental changes use Stems. The Current Goal is updated only after successful test gates and before proceeding to the next task.
