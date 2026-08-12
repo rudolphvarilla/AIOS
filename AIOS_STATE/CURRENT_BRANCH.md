@@ -23,11 +23,18 @@ report with bounded per-query execution.
 - One-second-per-query smoke regression: passed as a runner test; every case
   was reported as `timeout` without a hang.
 - Existing Coordinator suite: 53 passed.
-- Run the normal 300-second regression separately to assess real AIOS behavior;
-  its case outcomes are AIOS evidence, not local-agent runner failures.
+- Full 300-second-per-query live regression completed in 747.8 seconds:
+  - R1 `current weather in philippines`: timed out at 300.1 seconds after
+    search and answerability acceptance, during model generation.
+  - R2 `tallest mountain in the philippines`: timed out at 300.3 seconds;
+    routing incorrectly selected `Use Search: False` (`Travel handled locally`).
+  - R3 `what is 2+2`: passed, returned `4`, in 147.3 seconds; model execution
+    alone took 123.3 seconds.
+- The runner correctly captured every terminal result; R1/R2 are AIOS failures,
+  not local-agent runner failures.
 
 ## Boundaries
 - Keep Coordinator as coordinator; local-agent owns process driving and result
   capture only.
 - Do not merge this Stem into `main` directly.
-- Record the normal regression outcome here before beginning another task.
+- Start routing and generation-latency investigations on separate Stems.

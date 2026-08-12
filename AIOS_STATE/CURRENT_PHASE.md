@@ -22,6 +22,20 @@ bounded report for inspection.
 - A one-second-per-query smoke regression reported all cases as `timeout` and
   exited normally, proving bounded timeout reporting.
 - Existing Coordinator suite passed: 53 tests.
+- Full standard live regression completed on 2026-08-12 with a 300-second
+  per-query limit: R1 weather timed out after search/evidence acceptance; R2
+  mountain timed out and incorrectly skipped search; R3 arithmetic passed.
+
+## Current task after the regression gate
+The local-agent Stem has demonstrated its intended behavior and is pushed for
+review. Do not change the local-agent contract unless a concrete runner defect
+is found. The next Phase 3.2 investigation must use separate focused Stems:
+
+1. Correct R2's search-routing decision for factual geography questions.
+2. Diagnose the downstream generation latency/timeouts common to R1 and R2.
+
+The full regression establishes that the R1 search/evidence path reached
+answerability acceptance; its failure occurred after handoff to model execution.
 
 ## Boundaries
 - Do not modify `coordinator.py` for local-agent reporting.
